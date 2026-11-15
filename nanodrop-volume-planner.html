@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NanoDrop volume planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF2F4; --surface:#FFFFFF; --ink:#1A242C; --muted:#5A6873; --rule:#D2DAE0;
+  --accent:#9A4E14; --accent-soft:#F6E7D8; --warn-bg:#FBF1DF; --warn-ink:#6E4708; --bad:#B42318;
+  --slide:#DCE6EC; --slide-edge:#B9C8D2; --well:#FFFFFF; --well-filled:#EAF2F8; --well-ink:#1E4E78;
+  color-scheme:light;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#151B1F; --surface:#1C2429; --ink:#E3E9ED; --muted:#98A6B0; --rule:#33404A;
+    --accent:#E39352; --accent-soft:#3A2A1C; --warn-bg:#33291A; --warn-ink:#F0CE93; --bad:#F2877D;
+    --slide:#26313A; --slide-edge:#3A4955; --well:#1C2429; --well-filled:#1F3346; --well-ink:#9CC7EE;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#151B1F; --surface:#1C2429; --ink:#E3E9ED; --muted:#98A6B0; --rule:#33404A;
+  --accent:#E39352; --accent-soft:#3A2A1C; --warn-bg:#33291A; --warn-ink:#F0CE93; --bad:#F2877D;
+  --slide:#26313A; --slide-edge:#3A4955; --well:#1C2429; --well-filled:#1F3346; --well-ink:#9CC7EE;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1280px;margin:0 auto;padding:28px 24px 48px}
+header{margin-bottom:22px;border-bottom:2px solid var(--accent);padding-bottom:14px}
+h1{font-size:28px;line-height:1.15;font-weight:600;letter-spacing:-.01em;margin:0}
+.lede{margin:6px 0 0;color:var(--muted);max-width:75ch}
+.grid{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:24px;align-items:start}
+.grid>section{min-width:0}
+@media (max-width:920px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:18px}
+.panel+.panel{margin-top:16px}
+h2{font-size:17px;font-weight:600;margin:0}
+.lab{display:block;font-weight:600;margin-bottom:8px}
+textarea{width:100%;min-height:200px;resize:vertical;font:12.5px/1.4 "IBM Plex Sans",system-ui,sans-serif;font-variant-numeric:tabular-nums;color:var(--ink);background:var(--bg);border:1px solid var(--rule);border-radius:4px;padding:10px;white-space:pre;overflow:auto;tab-size:10}
+.hint{color:var(--muted);font-size:13px;margin:8px 0 0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+.field input{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--rule);border-radius:4px;padding:6px 8px;font-variant-numeric:tabular-nums}
+.field.wide{grid-column:1/-1}
+.field.key input{border-color:var(--accent);background:var(--accent-soft);font-weight:600;font-size:16px}
+.formula{margin:14px 0 0;padding:10px 12px;background:var(--bg);border-radius:4px;font-size:14px}
+.formula b{font-weight:600}
+#warn:empty{display:none}
+#warn{background:var(--warn-bg);color:var(--warn-ink);border-radius:4px;padding:8px 14px;margin-bottom:14px;font-size:14px}
+#warn ul{margin:0;padding-left:18px}
+.tblhead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:6px 10px;border-bottom:1px solid var(--rule);text-align:left;white-space:nowrap}
+th{font-weight:600;color:var(--muted);font-size:12.5px}
+td.n,th.n{text-align:right}
+td.vol{font-weight:600}
+tr.blank td{color:var(--muted)}
+.bad{color:var(--bad)}
+.tag{display:inline-block;font-size:12px;color:var(--muted);border:1px solid var(--rule);border-radius:3px;padding:0 5px;margin-left:6px}
+/* slides */
+.slides{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
+.slidecard{min-width:0}
+.slidecard{border:1px solid var(--rule);border-radius:6px;padding:14px;background:var(--surface)}
+.slidehead{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.slidehead input{font:inherit;font-weight:600;color:var(--ink);background:transparent;border:1px solid transparent;border-radius:4px;padding:4px 6px;min-width:0;flex:1 1 160px}
+.slidehead input:hover,.slidehead input:focus{border-color:var(--rule)}
+.slidehead .sum{color:var(--muted);font-size:13px;margin-left:auto}
+.slidescroll{overflow-x:auto}
+.slide{position:relative;min-width:680px;aspect-ratio:75.5/25.5;background:var(--slide);border:1px solid var(--slide-edge);border-radius:8px;padding:5% 4% 5% 9%;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(2,1fr);gap:4%}
+.slide::before{content:"ibidi µ-Slide 8 Well";position:absolute;left:2.5%;top:50%;writing-mode:vertical-rl;transform:translateY(-50%) rotate(180deg);font-size:11px;letter-spacing:.06em;color:var(--muted);white-space:nowrap}
+.well{background:var(--well);border:1.5px solid var(--slide-edge);border-radius:10px;display:flex;flex-direction:column;padding:6px 8px;min-width:0;position:relative}
+.well.filled{background:var(--well-filled);border-color:var(--well-ink)}
+.well.over{border-color:var(--bad)}
+.well .no{font-size:11px;color:var(--muted)}
+.well input{font:inherit;color:var(--ink);background:transparent;border:0;border-bottom:1px solid var(--rule);padding:2px 0;min-width:0}
+.well input:focus{border-bottom-color:var(--accent);outline:none}
+.well .wname{width:100%;font-size:13px;font-weight:500}
+.well .wamt{display:flex;align-items:baseline;gap:4px;font-size:11.5px;color:var(--muted);margin-top:4px}
+.well .wamt input{width:5.5em;font-size:12.5px;text-align:right;font-variant-numeric:tabular-nums}
+.well .out{margin-top:auto;padding-top:6px;min-height:2.6em}
+.well .v{margin-top:auto;font-size:20px;font-weight:600;color:var(--well-ink);font-variant-numeric:tabular-nums;line-height:1.1}
+.well.over .v{color:var(--bad)}
+.well .v small{font-size:12px;font-weight:500}
+.well .m{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.empty{color:var(--muted);padding:30px 8px;text-align:center}
+.masks{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 14px;padding:10px 12px;background:var(--bg);border-radius:4px;font-size:14px}
+.masks select,.masks input{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:5px 8px;min-width:0}
+.masks input{flex:1 1 140px}
+.masks .lbl{color:var(--muted)}
+.note{color:var(--muted);font-size:13px;margin:10px 0 0}
+@media print{
+  .masks{display:none!important} .well input{border:0}
+  body{background:#fff} .noprint,.grid>section:first-child{display:none!important}
+  .grid{display:block} .panel{border:0;padding:0} .slidecard{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>NanoDrop volume planner</h1>
+  <p class="lede">Paste a NanoDrop spectrum export. Each sample gets its mean absorbance over a wavelength range, and the volume needed to reach a fixed absolute amount, laid out on ibidi 8-well slides.</p>
+</header>
+<main class="grid">
+  <section>
+    <div class="panel">
+      <label class="lab" for="raw">NanoDrop export</label>
+      <textarea id="raw" spellcheck="false" placeholder="Paste everything, including the header lines. The table must start with a line beginning with “Wavelength (nm)”."></textarea>
+      <p class="hint">Copy the whole export as it comes. Everything above the “Wavelength (nm)” line is ignored; samples are the columns after it.</p>
+      <div class="row" style="margin-top:10px"><button type="button" id="clear">Clear</button></div>
+
+      <div class="fields">
+        <div class="field key wide"><label for="target">Target absolute amount (A·µL)</label><input id="target" type="number" step="any" min="0"></div>
+        <div class="field"><label for="lo">Range from (nm)</label><input id="lo" type="number" step="1"></div>
+        <div class="field"><label for="hi">Range to (nm)</label><input id="hi" type="number" step="1"></div>
+        <div class="field"><label for="ref">Single wavelength (nm)</label><input id="ref" type="number" step="1"></div>
+        <div class="field"><label for="maxv">Flag volumes above (µL)</label><input id="maxv" type="number" step="any" min="0" placeholder="optional"></div>
+      </div>
+      <p class="formula">Volume (µL) = <b>target amount</b> ÷ <b>mean A</b> over the range, both ends included.</p>
+    </div>
+  </section>
+
+  <section id="out">
+    <div class="panel">
+      <div id="warn"></div>
+      <div class="tblhead"><h2>Samples</h2><div class="row noprint"><button type="button" id="copyTable">Copy table</button><button type="button" id="saveCsv" hidden>Save as CSV</button></div></div>
+      <div class="tbl" id="table"><p class="empty">Paste a NanoDrop export to start.</p></div>
+    </div>
+    <div class="panel">
+      <div class="tblhead"><h2>Slide layout</h2>
+        <div class="row noprint"><button type="button" class="primary" id="autofill">Fill slides in sample order</button><button type="button" id="addSlide">Add slide</button><button type="button" id="copyPlan">Copy plan</button><button type="button" id="print" hidden>Print layout</button></div></div>
+      <p class="hint noprint" style="margin:0 0 12px">Type a sample name into each well, or fill all slides at once. Names are matched to the NanoDrop data (case and extra spaces don’t matter), so you can set up the mask before measuring. Leave a well’s amount empty to use the target amount.</p>
+      <div class="masks noprint"><span class="lbl">Saved masks</span><select id="maskList" aria-label="Saved masks"></select><button type="button" id="maskLoad">Load</button><button type="button" id="maskDelete">Delete</button>
+        <input id="maskName" type="text" placeholder="Name for this mask" aria-label="Mask name"><button type="button" id="maskSave">Save mask</button></div>
+      <datalist id="samplelist"></datalist>
+      <div class="slides" id="slides"></div>
+    </div>
+  </section>
+</main>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const KEY='nanodrop-volume-planner.v1';
+const isLocal = location.protocol==='file:' || ['localhost','127.0.0.1','::1'].includes(location.hostname);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const state={raw:'', target:13, lo:250, hi:300, ref:200, maxv:'', slides:[], masks:{}};
+let samples=[], lastTsv='', lastPlan='';
+
+function num(s){ if(s==null) return NaN; s=String(s).trim().replace(',', '.'); return /^-?\d*\.?\d+(e-?\d+)?$/i.test(s)? parseFloat(s) : NaN; }
+function fmt(v,d){ return isFinite(v)? v.toFixed(d) : '–'; }
+
+function parse(text){
+  const lines=text.split(/\r?\n/);
+  const hi=lines.findIndex(l=>/^\s*wavelength/i.test(l));
+  if(hi<0) return {error: text.trim()? 'No line starting with “Wavelength” found. Paste the whole export, including the header row.' : null, samples:[]};
+  const head=lines[hi];
+  const sep = head.includes('\t')? '\t' : head.includes(';')? ';' : ',';
+  let names=head.split(sep).slice(1).map(s=>s.trim());
+  while(names.length && !names[names.length-1]) names.pop();
+  const seen={};
+  names=names.map((n,j)=>{ n=n||`Column ${j+2}`; seen[n]=(seen[n]||0)+1; return seen[n]>1? `${n} (${seen[n]})` : n; });
+  const wl=[], cols=names.map(()=>[]);
+  for(let i=hi+1;i<lines.length;i++){
+    const c=lines[i].split(sep); const w=num(c[0]); if(!isFinite(w)) continue;
+    wl.push(w); names.forEach((_,j)=>cols[j].push(num(c[j+1])));
+  }
+  return {samples:names.map((name,j)=>({name, wl, vals:cols[j]})), wlMin:Math.min(...wl), wlMax:Math.max(...wl), n:wl.length};
+}
+
+function analyse(){
+  const p=parse(state.raw); const warn=[];
+  if(p.error) warn.push(p.error);
+  const lo=Math.min(state.lo,state.hi), hi=Math.max(state.lo,state.hi);
+  if(p.n && (lo<p.wlMin || hi>p.wlMax)) warn.push(`The export covers ${p.wlMin}–${p.wlMax} nm; the range was cut to fit.`);
+  samples=p.samples.map(s=>{
+    const inR=[]; let ref=NaN, refD=Infinity;
+    s.wl.forEach((w,i)=>{ const v=s.vals[i]; if(!isFinite(v)) return; if(w>=lo&&w<=hi) inR.push(v); const d=Math.abs(w-state.ref); if(d<refD){refD=d; ref=v;} });
+    const mean=inR.length? inR.reduce((a,b)=>a+b,0)/inR.length : NaN;
+    const blank = s.vals.every(v=>!isFinite(v)||v===0);
+    const vol = (!blank && mean>0)? state.target/mean : NaN;
+    return {name:s.name, ref: refD<=0.5? ref : NaN, mean, n:inR.length, blank, vol};
+  });
+  const neg=samples.filter(s=>!s.blank && !(s.mean>0)).map(s=>s.name);
+  if(neg.length) warn.push(`${neg.join(', ')}: mean absorbance in the range is zero or negative, so no volume can be calculated.`);
+  return warn;
+}
+
+function render(){
+  save();
+  const warn=analyse();
+  $('warn').innerHTML = warn.length? `<ul>${warn.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>` : '';
+  renderTable(); renderSlides(); renderMasks();
+}
+
+const norm=x=>String(x||'').trim().replace(/\s+/g,' ').toLowerCase();
+function sampleFor(name){ const n=norm(name); return n? samples.find(s=>!s.blank && norm(s.name)===n) : null; }
+function amountOf(w){ return (w.amount!==''&&w.amount!=null&&isFinite(+w.amount))? +w.amount : state.target; }
+function wellsOf(name){ const out=[]; state.slides.forEach((s,i)=>s.wells.forEach((w,j)=>{ if(norm(w.name)===norm(name)) out.push(`${state.slides.length>1? (i+1)+'.' : ''}${j+1}`); })); return out; }
+const over=v=> state.maxv!=='' && isFinite(+state.maxv) && v>+state.maxv;
+
+function renderTable(){
+  if(!samples.length){ $('table').innerHTML='<p class="empty">Paste a NanoDrop export to start.</p>'; lastTsv=''; return; }
+  const lo=Math.min(state.lo,state.hi), hi=Math.max(state.lo,state.hi);
+  const head=['Sample',`A ${state.ref} nm`,`Mean A ${lo}–${hi} nm`,'Target amount (A·µL)','Volume for target (µL)','Well'];
+  const rows=samples.map(s=>[s.name, fmt(s.ref,3), s.blank?'–':fmt(s.mean,3), s.blank?'–':fmt(state.target,2), s.blank?'–':fmt(s.vol,2), wellsOf(s.name).join(', ')]);
+  $('table').innerHTML=`<table><thead><tr>${head.map((h,i)=>`<th class="${i&&i<5?'n':''}">${esc(h)}</th>`).join('')}</tr></thead><tbody>${
+    samples.map((s,i)=>`<tr class="${s.blank?'blank':''}">${rows[i].map((c,j)=>`<td class="${j&&j<5?'n':''}${j===4?' vol':''}${j===4&&over(s.vol)?' bad':''}">${esc(c)}${j===0&&s.blank?'<span class="tag">blank</span>':''}</td>`).join('')}</tr>`).join('')
+  }</tbody></table><p class="note">Mean over ${samples[0]?.n||0} wavelength points per sample.</p>`;
+  lastTsv=[head.join('\t'),...rows.map(r=>r.join('\t'))].join('\n');
+}
+
+function renderSlides(){
+  $('samplelist').innerHTML=samples.filter(s=>!s.blank).map(s=>`<option value="${esc(s.name)}"></option>`).join('');
+  $('slides').innerHTML=state.slides.map((sl,si)=>`<div class="slidecard"><div class="slidehead"><input type="text" data-slide="${si}" class="slidename" value="${esc(sl.name)}" aria-label="Slide name">
+      <span class="sum" data-sum="${si}"></span>
+      <button type="button" class="noprint" data-clear="${si}">Clear</button>${state.slides.length>1?`<button type="button" class="noprint" data-remove="${si}">Remove</button>`:''}</div>
+      <div class="slidescroll"><div class="slide">${sl.wells.map((w,wi)=>`<div class="well" data-w="${si}-${wi}"><span class="no">Well ${wi+1}</span>
+          <input class="wname" type="text" list="samplelist" data-slide="${si}" data-well="${wi}" value="${esc(w.name)}" placeholder="sample name" aria-label="Sample in well ${wi+1}">
+          <label class="wamt">Amount <input class="wamount" type="number" step="any" min="0" data-slide="${si}" data-well="${wi}" value="${esc(w.amount)}" aria-label="Absolute amount for well ${wi+1}"> A·µL</label>
+          <div class="out"></div></div>`).join('')}</div></div></div>`).join('');
+  updateWells();
+}
+function updateWells(){
+  const plan=[];
+  state.slides.forEach((sl,si)=>{
+    let tot=0, nF=0; const lines=[sl.name];
+    sl.wells.forEach((w,wi)=>{
+      const el=document.querySelector(`.well[data-w="${si}-${wi}"]`); if(!el) return;
+      const s=sampleFor(w.name), amt=amountOf(w), vol= s&&s.mean>0? amt/s.mean : NaN;
+      el.classList.toggle('filled',!!s); el.classList.toggle('over',!!s&&over(vol));
+      el.querySelector('.wamount').placeholder=fmt(state.target,2); el.querySelector('.wname').title=w.name;
+      el.querySelector('.out').innerHTML = s? `<span class="v">${fmt(vol,2)} <small>µL</small></span><br><span class="m">mean A ${fmt(s.mean,3)}</span>`
+        : (w.name.trim()? `<span class="m">${samples.length?'not found in the data':'waiting for data'}</span>` : '');
+      if(s&&isFinite(vol)){ tot+=vol; nF++; }
+      lines.push(`Well ${wi+1}\t${w.name.trim()||'empty'}\t${w.name.trim()? fmt(amt,2)+' A·µL':''}\t${isFinite(vol)? fmt(vol,2)+' µL':''}`);
+    });
+    const sum=document.querySelector(`[data-sum="${si}"]`); if(sum) sum.textContent=`${nF} of 8 wells with data, ${fmt(tot,1)} µL in total`;
+    plan.push(lines.join('\n'));
+  });
+  lastPlan=plan.join('\n\n');
+}
+function refresh(){ save(); renderTable(); updateWells(); }
+
+function autofill(){
+  const usable=samples.filter(s=>!s.blank && isFinite(s.vol));
+  const n=Math.max(1,Math.ceil(usable.length/8));
+  state.slides=Array.from({length:n},(_,i)=>({name: state.slides[i]?.name || `Slide ${i+1}`, wells:Array.from({length:8},(_,j)=>({name:usable[i*8+j]?.name||'', amount:state.slides[i]?.wells[j]?.amount||''}))}));
+  render();
+}
+
+function emptySlide(n){ return {name:`Slide ${n}`, wells:Array.from({length:8},()=>({name:'',amount:''}))}; }
+function renderMasks(){ const names=Object.keys(state.masks||{}).sort(); $('maskList').innerHTML= names.length? names.map(n=>`<option>${esc(n)}</option>`).join('') : '<option value="">none yet</option>'; }
+
+function load(){
+  try{ const s=JSON.parse(localStorage.getItem(KEY)||'null'); if(s) Object.assign(state,s); }catch(e){}
+  state.masks=state.masks||{};
+  state.slides=(state.slides||[]).map(sl=>({name:sl.name, wells:sl.wells.map(w=>typeof w==='string'?{name:w,amount:''}:{name:w.name||'',amount:w.amount??''})}));
+  if(!state.slides.length) state.slides=[emptySlide(1)];
+  $('raw').value=state.raw; for(const k of ['target','lo','hi','ref','maxv']) $(k).value=state[k];
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+
+async function copyText(txt, btn){
+  let ok=false;
+  try{ await navigator.clipboard.writeText(txt); ok=true; }catch(e){ try{ const ta=document.createElement('textarea'); ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); ok=document.execCommand('copy'); ta.remove(); }catch(e2){} }
+  const old=btn.dataset.label||btn.textContent; btn.dataset.label=old; btn.textContent= ok?'Copied':'Copy failed'; setTimeout(()=>btn.textContent=old,1500);
+}
+
+function init(){
+  load();
+  let t; $('raw').addEventListener('input',()=>{ clearTimeout(t); t=setTimeout(()=>{ state.raw=$('raw').value; render(); },250); });
+  for(const k of ['target','lo','hi','ref']) $(k).addEventListener('input',e=>{ const v=parseFloat(e.target.value); if(isFinite(v)){ state[k]=v; render(); } });
+  $('maxv').addEventListener('input',e=>{ state.maxv=e.target.value; render(); });
+  $('clear').addEventListener('click',()=>{ $('raw').value=''; state.raw=''; render(); $('raw').focus(); });
+  $('autofill').addEventListener('click',autofill);
+  $('addSlide').addEventListener('click',()=>{ state.slides.push(emptySlide(state.slides.length+1)); render(); });
+  $('slides').addEventListener('input',e=>{ const el=e.target; const si=+el.dataset.slide, wi=+el.dataset.well;
+    if(el.matches('.slidename')){ state.slides[si].name=el.value; save(); updateWells(); }
+    else if(el.matches('.wname')){ state.slides[si].wells[wi].name=el.value; refresh(); }
+    else if(el.matches('.wamount')){ state.slides[si].wells[wi].amount=el.value; refresh(); } });
+  $('slides').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return;
+    if(b.dataset.clear!=null){ state.slides[+b.dataset.clear].wells.forEach(w=>{w.name='';w.amount='';}); render(); }
+    if(b.dataset.remove!=null){ state.slides.splice(+b.dataset.remove,1); render(); } });
+  $('maskSave').addEventListener('click',()=>{ const n=$('maskName').value.trim()||`Mask ${Object.keys(state.masks).length+1}`; state.masks[n]=JSON.parse(JSON.stringify(state.slides)); $('maskName').value=''; render(); $('maskList').value=n; });
+  $('maskLoad').addEventListener('click',()=>{ const n=$('maskList').value; if(!state.masks[n]) return; state.slides=JSON.parse(JSON.stringify(state.masks[n])); render(); $('maskList').value=n; });
+  $('maskDelete').addEventListener('click',()=>{ const n=$('maskList').value; if(!state.masks[n]) return; delete state.masks[n]; render(); });
+  $('copyTable').addEventListener('click',e=>copyText(lastTsv,e.currentTarget));
+  $('copyPlan').addEventListener('click',e=>{ updateWells(); copyText(lastPlan,e.currentTarget); });
+  if(isLocal){
+    $('saveCsv').hidden=false; $('print').hidden=false;
+    $('saveCsv').addEventListener('click',()=>{ const csv=lastTsv.split('\n').map(l=>l.split('\t').map(c=>/[;"]/.test(c)?`"${c.replace(/"/g,'""')}"`:c).join(';')).join('\n');
+      const u=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'})); const a=document.createElement('a'); a.href=u; a.download='nanodrop-volumes.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),2000); });
+    $('print').addEventListener('click',()=>window.print());
+  }
+  render();
+}
+init();
+</script>
+</body>
+</html>
