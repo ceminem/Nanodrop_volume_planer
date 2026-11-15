@@ -1,6 +1,9 @@
 # NanoDrop volume planner
 
-One HTML file, no installation, no internet needed.
+One HTML file, no installation, no internet needed. Three tabs: **NanoDrop &
+ibidi slides** (volumes for a fixed absolute amount), **96-well titration**
+(dose series and pipetting mask) and **IC50** (dose–response fit of the plate
+readout).
 
 **On your PC:** get the folder (GitHub Desktop → *Clone repository*, or on
 GitHub *Code → Download ZIP* and unzip), then double-click
@@ -62,6 +65,67 @@ table lands in cells) and as tab-separated text for plain editors.
 **Print plan** (also Ctrl+P) prints only this sheet, not the page; one slide per
 A4 page, "Save as PDF" in the print dialog gives a PDF for the lab notebook.
 **Save as CSV** and **Print plan** appear when the file is opened locally.
+
+## 96-well titration (tab 2)
+
+Plan a dose series per sample on a 96-well plate and get the pipetting mask.
+
+- **Layout:** doses go **down the rows** (lowest on top), replicates **across the
+  columns**; each condition is a block of rows × columns, filled left to right,
+  then the next block of rows. Presets:
+  - **8 doses × 4 conditions**, triplicate: rows A–H; C1 = columns 1–3 … C4 = 10–12
+  - **4 doses × 8 conditions**, triplicate: C1–C4 in rows A–D, C5–C8 in rows E–H
+
+  Or set doses per condition (2–8) and replicates (1, 2, 3, 4, 6) freely;
+  optionally the first dose is an untreated control (0).
+- **Per condition:** short label, name, NanoDrop sample, dose range *from – to*.
+  The doses in between are spaced logarithmically (same factor) or linearly;
+  type your own list into *Doses* to override (`0, 0.1, 0.4, 1`).
+- **Dose** is an absolute amount (A·µL; sample volume = dose ÷ mean A of the
+  chosen sample, from the NanoDrop tab) or directly a sample volume (µL).
+- **Outputs:** plate mask (each well: short label, dose, sample volume; darker =
+  higher dose), and a pipetting table per condition: sample and medium per well
+  (with a final volume set), a **mix for replicates + 1 wells**, the total sample
+  needed (+10 %). Volumes below the smallest pipetting volume get a pre-dilution
+  hint (e.g. "use 2.5 µL of a 1:10 dilution").
+- **Copy mask / Print mask:** the mask (A4 landscape) with legend, then the
+  pipetting table.
+
+**Long names:** every condition has a short label (C1, CTAP, …) that the mask,
+the legend and the plots use; the full name is in the legend, tables and
+tooltips, and plot titles wrap to two lines.
+
+## IC50 (tab 3)
+
+Paste the 8 × 12 readout block (from Excel or the plate reader; row letters,
+the 1–12 line and decimal commas are fine). The wells are matched to the layout
+and doses of the titration tab - set that up first, also for plates not planned
+in the tool.
+
+- **Fit:** 4-parameter log-logistic, the same model as `drc::LL.4` in R:
+  `y = bottom + (top − bottom) / (1 + exp(slope · (ln dose − ln IC50)))`,
+  least squares on **every replicate well**. IC50 = the dose halfway between
+  fitted top and bottom; **95 % CI** by the delta method (as `drc::ED(…,
+  interval = "delta")`). Checked against drc 4.0.3 on test data: IC50, slope,
+  top, bottom and CI agree to < 0.1 %.
+- **Options:** blank subtraction; response as measured or as **% of the
+  untreated control** (needs dose 0); axis labels.
+- **Outliers:** click a well in the readout to leave it out of the fit.
+- **Warnings in the table:** IC50 outside the tested doses (extrapolated), no CI
+  with only 4 points (4 doses × 1 replicate), wide CI, poor fit, rising curve.
+  With 4 doses use replicates: the fit then has 12 points for 4 parameters.
+- **Plots:** one per condition (points, curve, dashed IC50 line, IC50 and CI) or
+  all conditions in one plot. **Copy results** (table for Excel/Word) and
+  **Print report** (table + plots).
+
+## R script (`R/`)
+
+`R/MTT-pipline-script.R` is the same analysis in R (RStudio project
+`R/MTT-assay.Rproj`): choose `layout <- "8x4"`, `"4x8"` or `"custom"`, name
+the conditions, give the concentrations (one series for all, or one per
+condition), paste the plate. It fits every replicate well with `drc` LL.4,
+prints IC50 with 95 % CI and warnings, wraps long titles, draws up to 4 plots
+per row and saves `IC50_summary.csv`, `IC50_plots.pdf`, `IC50_overlay.pdf`.
 
 ## History
 

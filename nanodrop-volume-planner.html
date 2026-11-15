@@ -147,6 +147,62 @@ tr.hl td{background:var(--accent-soft)}
 .lipids .cnt{color:var(--muted);font-size:12px;white-space:nowrap}
 td select.lip{font:inherit;font-size:13px;color:var(--ink);background:transparent;border:1px solid var(--rule);border-radius:4px;padding:2px 4px;max-width:12em}
 .well .lipname{font-size:11.5px;color:var(--accent);font-weight:500}
+/* tabs */
+.tabs{display:flex;gap:4px;margin-top:16px;flex-wrap:wrap}
+.tabs button{border:1px solid var(--rule);border-radius:6px 6px 0 0;background:transparent;color:var(--muted);font-weight:500;padding:7px 16px;margin-bottom:-15px}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);border-color:var(--accent);border-bottom-color:var(--surface);box-shadow:inset 0 3px 0 var(--accent)}
+main[hidden]{display:none!important}
+.field select{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--rule);border-radius:4px;padding:6px 8px}
+.chk{display:flex!important;gap:6px;align-items:center;font-size:14px;color:var(--ink)!important;cursor:pointer}
+.chk input{width:auto!important;margin:0}
+.dot{display:inline-block;width:11px;height:11px;border-radius:50%;vertical-align:-1px;flex:none}
+.m{color:var(--muted);font-size:12.5px}
+/* conditions table */
+.conds td{white-space:normal;vertical-align:top;padding:5px 5px}
+.conds th{padding:5px}
+.conds td:first-child{padding-top:11px}
+.conds input{font:inherit;font-size:13.5px;color:var(--ink);background:var(--bg);border:1px solid var(--rule);border-radius:4px;padding:4px 6px;min-width:0;width:100%}
+.conds .ccode{width:4.6em;font-weight:600}
+.conds .cname{min-width:12em}
+.conds .csample{min-width:9em}
+.conds .cnum{width:4.8em;text-align:right}
+.conds .cdoses{min-width:10em}
+.conds input.bad{border-color:var(--bad)}
+.conds tr.off td{opacity:.45}
+.conds .cwells{font-size:13px;padding-top:9px;white-space:nowrap}
+.conds .del{border:0;background:transparent;color:var(--muted);font-size:16px;padding:2px 4px}
+.conds .del:hover{color:var(--bad)}
+.cinfo{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.3}
+.cinfo.bad{color:var(--bad)}
+/* 96-well plate */
+.plate{display:grid;grid-template-columns:22px repeat(12,minmax(0,1fr));gap:3px;min-width:780px}
+.ph{font-size:12px;color:var(--muted);text-align:center;align-self:center;font-weight:600}
+.pw{min-height:58px;border:1.5px solid var(--rule);border-radius:9px;padding:3px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:11px;line-height:1.25;font-variant-numeric:tabular-nums;overflow:hidden;min-width:0;color:var(--ink)}
+.pw b{font-size:11.5px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pw .pd{color:var(--muted)}
+.pw .pv{font-weight:600}
+.pw.warn .pv{color:var(--bad)}
+.pw.empty{border-style:dashed;opacity:.55}
+.pw.click{cursor:pointer}
+.pw.click:hover{box-shadow:0 0 0 2px var(--accent)}
+.pw.ex{opacity:.35;background:repeating-linear-gradient(45deg,transparent 0 5px,var(--rule) 5px 6px)!important}
+.pw.ex .pv{text-decoration:line-through}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:12px;font-size:13px}
+.legend .li{display:inline-flex;gap:6px;align-items:baseline;max-width:100%;overflow-wrap:anywhere}
+.legend .li .dot{align-self:center}
+.legend .li b{white-space:nowrap}
+table.pip td.pnote{min-width:13em;white-space:normal}
+.legend .li.off{opacity:.45}
+table.pip td,table.pip th{padding:4px 8px}
+table.pip tr.grp td{background:var(--bg);font-size:13.5px;white-space:normal;padding-top:8px}
+/* IC50 */
+.res td.name{white-space:normal;min-width:13em;max-width:24em;overflow-wrap:anywhere;font-weight:500}
+.res td.note{white-space:normal;color:var(--warn-ink);font-size:12.5px;min-width:10em;max-width:22em}
+.plots{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.plotcard{border:1px solid var(--rule);border-radius:6px;padding:6px;min-width:0}
+.plotcard svg{width:100%;height:auto;display:block}
+#sheet.land{page:land}
+@page land{size:A4 landscape;margin:10mm}
 #sheet{display:none}
 .titlebar{display:flex;gap:8px;align-items:center;margin:0 0 10px;font-size:14px}
 .titlebar .lbl{color:var(--muted)}
@@ -162,9 +218,10 @@ td select.lip{font:inherit;font-size:13px;color:var(--ink);background:transparen
 <div class="wrap">
 <header>
   <h1>NanoDrop volume planner</h1>
-  <p class="lede">Paste a NanoDrop spectrum export. Each sample gets its mean absorbance over a wavelength range, and the volume needed to reach a fixed absolute amount, laid out on ibidi 8-well slides with well coordinates A1–D2.</p>
+  <p class="lede">Paste a NanoDrop spectrum export. Each sample gets its mean absorbance over a wavelength range, and the volume needed to reach a fixed absolute amount, laid out on ibidi 8-well slides with well coordinates A1–D2 or titrated on a 96-well plate, with the IC50 from the plate readout.</p>
+  <nav class="tabs" role="tablist"><button type="button" role="tab" data-tab="nano">NanoDrop &amp; ibidi slides</button><button type="button" role="tab" data-tab="titr">96-well titration</button><button type="button" role="tab" data-tab="ic50">IC50</button></nav>
 </header>
-<main class="grid">
+<main class="grid" id="tab-nano">
   <section>
     <div class="panel">
       <label class="lab" for="raw">NanoDrop export</label>
@@ -216,6 +273,72 @@ td select.lip{font:inherit;font-size:13px;color:var(--ink);background:transparen
     </div>
   </section>
 </main>
+<main class="grid" id="tab-titr" hidden>
+  <section>
+    <div class="panel">
+      <span class="lab">Plate layout</span>
+      <div class="row"><button type="button" id="preset84">8 doses × 4 conditions</button><button type="button" id="preset48">4 doses × 8 conditions</button></div>
+      <p class="hint">Both in triplicate. Doses go down the rows (lowest dose on top), replicates across the columns. A condition is a block of rows × columns; blocks fill the plate left to right, then the next block of rows.</p>
+      <div class="fields">
+        <div class="field"><label for="tSteps">Doses per condition (rows)</label><select id="tSteps"></select></div>
+        <div class="field"><label for="tReps">Replicates (columns)</label><select id="tReps"></select></div>
+        <div class="field wide"><label class="chk"><input type="checkbox" id="tCtrl"> First dose is an untreated control (0)</label></div>
+        <div class="field"><label for="tSpacing">Spacing between doses</label><select id="tSpacing"><option value="log">logarithmic</option><option value="lin">linear</option></select></div>
+        <div class="field"><label for="tUnit">Dose is given as</label><select id="tUnit"><option value="amount">amount (A·µL)</option><option value="volume">volume (µL)</option></select></div>
+        <div class="field"><label for="tFinal">Final volume per well (µL)</label><input id="tFinal" type="number" step="any" min="0" placeholder="optional"></div>
+        <div class="field"><label for="tMin">Smallest volume you pipette (µL)</label><input id="tMin" type="number" step="any" min="0"></div>
+        <div class="field wide"><label for="tTitle">Experiment title (print / copy)</label><input id="tTitle" type="text" placeholder="e.g. MTT HeLa 15.11. – DOPC vs DOPC/DOTAP"></div>
+      </div>
+      <p class="formula">Sample per well (µL) = <b>dose</b> ÷ <b>mean A</b> of the chosen NanoDrop sample (range set on the NanoDrop tab). Medium = final volume − sample.</p>
+    </div>
+  </section>
+  <section>
+    <div class="panel">
+      <div class="tblhead"><h2>Conditions</h2><div class="row"><span class="hint" id="tCap" style="margin:0"></span><button type="button" id="tAdd">Add condition</button></div></div>
+      <div class="tbl" id="tConds"></div>
+      <p class="hint">Pick the NanoDrop sample and the dose range (from – to) per condition; the doses in between are filled in. To use your own doses, type them in the Doses field (e.g. <i>0, 0.1, 0.4, 1</i>). The short label is what the plate mask and the plots show, so long names stay readable.</p>
+    </div>
+    <div class="panel">
+      <div class="tblhead"><h2>Plate mask</h2><div class="row noprint"><button type="button" id="tCopy">Copy mask</button><button type="button" id="tPrint" hidden>Print mask</button></div></div>
+      <div class="slidescroll" id="tPlate"></div>
+      <div id="tLegend"></div>
+    </div>
+    <div class="panel">
+      <div class="tblhead"><h2>Pipetting</h2></div>
+      <div class="tbl" id="tPip"></div>
+    </div>
+  </section>
+</main>
+<main class="grid" id="tab-ic50" hidden>
+  <section>
+    <div class="panel">
+      <label class="lab" for="rRaw">Plate readout</label>
+      <textarea id="rRaw" spellcheck="false" placeholder="Paste the 8 × 12 block of values from Excel or the plate reader. Row letters and the 1–12 line may be included; decimal commas are fine."></textarea>
+      <p class="hint">The wells are matched to the layout and doses on the <b>96-well titration</b> tab, so set that up first (also for plates not planned here).</p>
+      <div class="fields">
+        <div class="field"><label for="rBlank">Blank (subtracted)</label><input id="rBlank" type="number" step="any" placeholder="optional"></div>
+        <div class="field"><label for="rNorm">Response</label><select id="rNorm"><option value="raw">as measured</option><option value="pct">% of untreated control</option></select></div>
+        <div class="field wide"><label for="rX">x-axis label</label><input id="rX" type="text"></div>
+        <div class="field wide"><label for="rY">y-axis label</label><input id="rY" type="text"></div>
+      </div>
+      <p class="formula">4-parameter log-logistic, as drc <b>LL.4</b> in R:<br>y = bottom + (top − bottom) / (1 + exp(slope · (ln dose − ln IC50)))<br>Fitted to every replicate well. IC50 is the dose halfway between the fitted top and bottom; 95 % CI by the delta method, as drc’s ED().</p>
+    </div>
+  </section>
+  <section>
+    <div class="panel">
+      <div class="tblhead"><h2>Readout</h2><span class="hint" style="margin:0">Click a well to leave it out of the fit (outlier); click again to use it.</span></div>
+      <div class="slidescroll" id="rPlate"><p class="empty">Paste a plate readout to start.</p></div>
+    </div>
+    <div class="panel">
+      <div class="tblhead"><h2>IC50</h2><div class="row noprint"><button type="button" id="rCopy">Copy results</button><button type="button" id="rPrint" hidden>Print report</button></div></div>
+      <div class="tbl" id="rTable"></div>
+    </div>
+    <div class="panel">
+      <div class="tblhead"><h2>Dose–response curves</h2><label class="chk"><input type="checkbox" id="rOverlay"> all conditions in one plot</label></div>
+      <div id="rPlots"></div>
+    </div>
+  </section>
+</main>
 </div>
 <div id="sheet" aria-hidden="true"></div>
 <script>
@@ -227,7 +350,7 @@ const DEFAULT_LIPIDS=[{name:'DOPC', amount:14, match:'DOPC'},
                       {name:'DOPC/DOTAP', amount:12, match:'DOPC/DOTAP'},
                       {name:'vac lipid', amount:12, match:'vac'}];
 const state={raw:'', target:13, lo:250, hi:300, ref:200, maxv:'', order:'col', slides:[], masks:{},
-             lipids:JSON.parse(JSON.stringify(DEFAULT_LIPIDS)), lipidOf:{}, title:''};
+             lipids:JSON.parse(JSON.stringify(DEFAULT_LIPIDS)), lipidOf:{}, title:'', tab:'nano', plate:null};
 let samples=[], lastTsv='', P={samples:[]}, CH=null, hoverName='';
 
 /* ---- well coordinates ------------------------------------------------
@@ -305,14 +428,14 @@ function analyse(){
 function render(){
   save();
   setWarn(analyse());
-  renderTable(); renderSlides(); renderChips(); renderMasks(); renderChart(); renderLipids();
+  renderTable(); renderSlides(); renderChips(); renderMasks(); renderChart(); renderLipids(); renderTitr();
   applyHighlight();
 }
 /* light update (well contents or range changed): keeps inputs and focus */
 function refresh(){
   save();
   setWarn(analyse());
-  renderTable(); updateWells(); renderChips(); updateChart(); updateLipidCounts();
+  renderTable(); updateWells(); renderChips(); updateChart(); updateLipidCounts(); updateTitr();
   applyHighlight();
 }
 function setWarn(warn){ $('warn').innerHTML = warn.length? `<ul>${warn.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>` : ''; }
@@ -460,7 +583,8 @@ async function copyPlan(btn){
   if(!ok){ await copyText(text, btn); return; }
   const old=btn.dataset.label||btn.textContent; btn.dataset.label=old; btn.textContent='Copied'; setTimeout(()=>btn.textContent=old,1500);
 }
-function buildSheet(){ $('sheet').innerHTML=sheetHtml(); }
+function buildSheet(){ const t=state.tab||'nano', sh=$('sheet'); sh.className= t==='titr'? 'land' : '';
+  sh.innerHTML= t==='titr'? titrSheetHtml() : t==='ic50'? icSheetHtml() : sheetHtml(); }
 
 /* ---- sample chips: what is not on a slide yet ------------------------ */
 function placed(){ const set=new Set(); state.slides.forEach(sl=>sl.wells.forEach(w=>{ if(w.name.trim()) set.add(norm(w.name)); })); return set; }
@@ -645,6 +769,8 @@ function load(){
   state.masks=state.masks||{}; if(!ORDER[state.order]) state.order='col';
   if(!Array.isArray(state.lipids)) state.lipids=JSON.parse(JSON.stringify(DEFAULT_LIPIDS));
   state.lipidOf=state.lipidOf||{}; if(typeof state.title!=='string') state.title='';
+  { const d=defaultPlate(); state.plate=Object.assign(d, state.plate||{}); if(!Array.isArray(state.plate.conds)||!state.plate.conds.length) state.plate.conds=d.conds;
+    state.plate.excl=state.plate.excl||{}; if(![2,3,4,5,6,7,8].includes(+state.plate.steps)) state.plate.steps=4; if(![1,2,3,4,6].includes(+state.plate.reps)) state.plate.reps=3; T=state.plate; }
   state.slides=(state.slides||[]).map(sl=>({name:sl.name, wells:sl.wells.map(w=>typeof w==='string'?{name:w,amount:''}:{name:w.name||'',amount:w.amount??''})}));
   if(!state.slides.length) state.slides=[emptySlide(1)];
   $('raw').value=state.raw; for(const k of ['target','lo','hi','ref','maxv']) $(k).value=state[k]; $('order').value=state.order; $('planTitle').value=state.title||'';
@@ -714,8 +840,464 @@ function init(){
       const u=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv'})); const a=document.createElement('a'); a.href=u; a.download='nanodrop-volumes.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),2000); });
     $('print').addEventListener('click',()=>{ buildSheet(); window.print(); });
   }
+  titrInit();
   render();
+  showTab(state.tab);
 }
+/* =====================================================================
+   96-WELL TITRATION + IC50
+   Plate: rows A-H, columns 1-12. A condition occupies a block of
+   `steps` rows x `reps` columns: doses go DOWN the rows (lowest first),
+   replicates ACROSS the columns. Blocks fill the plate left to right,
+   then the next block of rows:
+     4 doses x triplicate -> 2 x 4 blocks = 8 conditions
+     8 doses x triplicate -> 1 x 4 blocks = 4 conditions
+   ===================================================================== */
+const ROWS='ABCDEFGH';
+const PAL=['#2F6DB5','#C0392B','#2E8B57','#8E44AD','#C47A0A','#13868A','#5F6B7A','#A0522D','#1F8F4E','#B03A7A','#3B5BA9','#7A6A12'];
+const colorOf=k=>PAL[k%PAL.length];
+const rgba=(hex,a)=>`rgba(${parseInt(hex.slice(1,3),16)},${parseInt(hex.slice(3,5),16)},${parseInt(hex.slice(5,7),16)},${a})`;
+let T=null;
+function defaultPlate(){ return {steps:4, reps:3, ctrl:false, spacing:'log', unit:'amount', final:'', minv:0.5, title:'',
+  conds:Array.from({length:8},(_,k)=>({name:`Condition ${k+1}`, code:`C${k+1}`, sample:'', lo:1, hi:14, doses:''})),
+  raw:'', blank:'', norm:'raw', xlab:'', ylab:'', excl:{}, overlay:false}; }
+
+function geom(){ const n=+T.steps, r=+T.reps, rb=Math.floor(8/n), cb=Math.floor(12/r); return {n, r, rb, cb, max:rb*cb}; }
+const wellName=(row,col)=>ROWS[row]+(col+1);
+function condWells(k){ // [step][replicate] -> "A1" ; null when the condition does not fit on the plate
+  const g=geom(); if(k>=g.max) return null;
+  const r0=Math.floor(k/g.cb)*g.n, c0=(k%g.cb)*g.r;
+  return Array.from({length:g.n},(_,i)=>Array.from({length:g.r},(_,j)=>wellName(r0+i,c0+j)));
+}
+const wellSpan=ws=>ws? `${ws[0][0]}–${ws[ws.length-1][ws[0].length-1]}` : 'not on the plate';
+const rowSpan=row=>row.length>1? `${row[0]}–${row[row.length-1]}` : row[0];
+const sig=v=>+(+v).toPrecision(3);
+const fmtDose=v=>isFinite(v)? String(sig(v)) : '–';
+const fmtUL=v=>isFinite(v)? (v===0? '0' : v<10? v.toFixed(2) : v.toFixed(1)) : '–';
+const doseUnit=()=>T.unit==='volume'? 'µL' : 'A·µL';
+
+function computedDoses(c){
+  const g=geom(), m=T.ctrl? g.n-1 : g.n, lo=+c.lo, hi=+c.hi;
+  const ok= c.lo!==''&&c.hi!==''&&isFinite(lo)&&isFinite(hi) && (T.spacing==='log'? lo>0&&hi>0 : lo>=0&&hi>=0);
+  if(!ok || m<1) return null;
+  const out=[]; for(let i=0;i<m;i++){ const f= m===1? 1 : i/(m-1); out.push(sig(T.spacing==='log'? lo*Math.pow(hi/lo,f) : lo+(hi-lo)*f)); }
+  return T.ctrl? [0,...out] : out;
+}
+function parseList(s){ // "0, 0.1, 0.4" or "0;0,1;0,4" or "0 0,1 0,4"
+  const out=[]; String(s).trim().split(/[;\s]+/).forEach(t=>{ t=t.replace(/,+$/,''); if(!t) return;
+    const parts=(/,.*,/.test(t)||(/,/.test(t)&&/\./.test(t)))? t.split(',') : [t]; parts.forEach(p=>out.push(num(p))); });
+  return out;
+}
+function dosesOf(c){
+  const g=geom();
+  if(c.doses && String(c.doses).trim()){ const v=parseList(c.doses);
+    if(v.length===g.n && v.every(x=>isFinite(x)&&x>=0)) return {d:v, custom:true};
+    return {d:computedDoses(c), bad:`needs ${g.n} doses ≥ 0, got ${v.length}`}; }
+  return {d:computedDoses(c)};
+}
+function sampleVol(c,dose){
+  if(!isFinite(dose)) return NaN; if(dose===0) return 0; if(T.unit==='volume') return dose;
+  const s=sampleFor(c.sample); return s&&s.mean>0? dose/s.mean : NaN;
+}
+function predil(v){ const mv=+T.minv; if(!(v>0)||!(mv>0)||v>=mv) return null; const f=Math.pow(10,Math.ceil(Math.log10(mv/v)-1e-9)); return {f, v:v*f}; }
+function finalVol(){ return T.final!==''&&isFinite(+T.final)&&+T.final>0? +T.final : null; }
+function sampleStatus(c){
+  if(T.unit==='volume') return {txt: c.sample? (sampleFor(c.sample)? `mean A ${fmt(sampleFor(c.sample).mean,3)}` : '') : '', bad:false};
+  if(!String(c.sample||'').trim()) return {txt:'choose a sample for volumes', bad:true};
+  const s=sampleFor(c.sample);
+  return s? {txt:`mean A ${fmt(s.mean,3)}`+(lipidFor(c.sample)? ` · ${lipidFor(c.sample).name}` : ''), bad:false}
+          : {txt: samples.length? 'not in the NanoDrop data' : 'waiting for NanoDrop data', bad:true};
+}
+function titrPlan(){
+  const g=geom(), fin=finalVol();
+  return T.conds.map((c,k)=>{
+    const ws=condWells(k), D=dosesOf(c);
+    const steps=Array.from({length:g.n},(_,i)=>{ const dose=D.d? D.d[i] : NaN, v=sampleVol(c,dose);
+      const med= fin!=null&&isFinite(v)? fin-v : NaN;
+      return {i, dose, v, med, over: fin!=null&&v>fin, pd:predil(v), wells: ws? ws[i] : null}; });
+    const need=steps.reduce((a,s)=>a+(isFinite(s.v)? s.v*g.r : 0),0);
+    return {k, c, code:(c.code||'').trim()||`C${k+1}`, name:(c.name||'').trim()||`Condition ${k+1}`, color:colorOf(k),
+            ws, on:!!ws, D, steps, need, fin, st:sampleStatus(c)};
+  });
+}
+function wellIndex(plan){ const m={}; plan.forEach(p=>{ if(p.ws) p.ws.forEach((row,i)=>row.forEach((w,j)=>m[w]={p, i, j})); }); return m; }
+
+/* ---- titration: screen ---------------------------------------------- */
+function renderTitr(){
+  const g=geom();
+  $('tSteps').value=T.steps; $('tReps').value=T.reps; $('tCtrl').checked=!!T.ctrl; $('tSpacing').value=T.spacing; $('tUnit').value=T.unit;
+  $('tFinal').value=T.final; $('tMin').value=T.minv; $('tTitle').value=T.title||'';
+  $('tConds').innerHTML=`<table class="conds"><thead><tr><th></th><th>Short</th><th>Condition</th><th>Sample</th><th class="n">From</th><th class="n">To</th><th>Doses (<span class="du">${doseUnit()}</span>)</th><th>Wells</th><th></th></tr></thead><tbody>${
+    T.conds.map((c,k)=>`<tr data-k="${k}">
+      <td><span class="dot" style="background:${colorOf(k)}"></span></td>
+      <td><input class="ccode" data-k="${k}" data-f="code" value="${esc(c.code)}" maxlength="8" aria-label="Short label of condition ${k+1}"></td>
+      <td><input class="cname" data-k="${k}" data-f="name" value="${esc(c.name)}" aria-label="Name of condition ${k+1}"></td>
+      <td><input class="csample" data-k="${k}" data-f="sample" list="samplelist" value="${esc(c.sample)}" placeholder="NanoDrop sample" aria-label="Sample of condition ${k+1}"><div class="cinfo" data-info="${k}"></div></td>
+      <td><input class="cnum" type="number" step="any" min="0" data-k="${k}" data-f="lo" value="${esc(c.lo)}" aria-label="Lowest dose"></td>
+      <td><input class="cnum" type="number" step="any" min="0" data-k="${k}" data-f="hi" value="${esc(c.hi)}" aria-label="Highest dose"></td>
+      <td><input class="cdoses" data-k="${k}" data-f="doses" value="${esc(c.doses)}" aria-label="Doses of condition ${k+1}"><div class="cinfo" data-dinfo="${k}"></div></td>
+      <td class="cwells" data-wells="${k}"></td>
+      <td><button type="button" class="del" data-cdel="${k}" title="Remove this condition" aria-label="Remove condition ${k+1}">×</button></td></tr>`).join('')
+  }</tbody></table>`;
+  updateTitr();
+}
+function updateTitr(){
+  const plan=titrPlan(), g=geom();
+  plan.forEach(p=>{
+    const tr=document.querySelector(`#tConds tr[data-k="${p.k}"]`); if(!tr) return;
+    tr.classList.toggle('off',!p.on);
+    const di=tr.querySelector('.cdoses'); const comp=computedDoses(p.c);
+    di.placeholder= comp? comp.map(fmtDose).join(', ') : (T.spacing==='log'? 'from and to must be > 0' : 'set from and to');
+    di.classList.toggle('bad',!!p.D.bad); tr.querySelector(`[data-dinfo="${p.k}"]`).textContent= p.D.bad? p.D.bad : p.D.custom? 'own doses' : '';
+    tr.querySelector(`[data-dinfo="${p.k}"]`).classList.toggle('bad',!!p.D.bad);
+    const info=tr.querySelector(`[data-info="${p.k}"]`); info.textContent=p.st.txt; info.classList.toggle('bad',p.st.bad);
+    tr.querySelector(`[data-wells="${p.k}"]`).textContent=wellSpan(p.ws);
+    tr.querySelector('.cname').title=p.name;
+  });
+  document.querySelectorAll('#tConds .du').forEach(e=>e.textContent=doseUnit());
+  const used=Math.min(T.conds.length,g.max);
+  $('tCap').textContent=`${used} of ${g.max} blocks used`+(T.conds.length>g.max? ` · ${T.conds.length-g.max} not on the plate` : '');
+  $('tAdd').disabled= T.conds.length>=g.max;
+  const idx=wellIndex(plan);
+  $('tPlate').innerHTML=plateGrid(w=>{ const o=idx[w]; if(!o) return `<div class="pw empty" title="${w}: empty"></div>`;
+    const s=o.p.steps[o.i], a=g.n>1? 0.10+0.42*o.i/(g.n-1) : 0.25, warn=s.over||!!s.pd||(!isFinite(s.v)&&isFinite(s.dose));
+    return `<div class="pw${warn?' warn':''}" style="background:${rgba(o.p.color,a)};border-color:${o.p.color}" title="${esc(`${w} · ${o.p.name} · dose ${fmtDose(s.dose)} ${doseUnit()} · ${fmtUL(s.v)} µL sample`+(isFinite(s.med)? ` + ${fmtUL(s.med)} µL medium` : ''))}">
+      <b style="color:${o.p.color}">${esc(o.p.code)}</b><span class="pd">${fmtDose(s.dose)}</span><span class="pv">${isFinite(s.v)? fmtUL(s.v)+' µL' : '–'}</span></div>`; });
+  $('tLegend').innerHTML=`<div class="legend">${plan.map(p=>`<span class="li${p.on?'':' off'}"><span class="dot" style="background:${p.color}"></span><b>${esc(p.code)}</b> ${esc(p.name)}${p.c.sample? ` <span class="m">(${esc(p.c.sample)})</span>` : ''}</span>`).join('')}</div>
+    <p class="note">Each well: short label, dose (${doseUnit()}), sample volume. Darker = higher dose.</p>`;
+  renderPip(plan);
+  save();
+  if(state.tab==='ic50') ic50Update();
+}
+function renderPip(plan){
+  const g=geom(), fin=finalVol(), mix=g.r+1;
+  const head=`<tr><th>Dose (${doseUnit()})</th><th>Wells</th><th class="n">Sample / well (µL)</th>${fin!=null?'<th class="n">Medium / well (µL)</th>':''}<th class="n">Mix for ${mix} wells: sample</th>${fin!=null?'<th class="n">medium</th>':''}<th>Note</th></tr>`;
+  const body=plan.filter(p=>p.on).map(p=>`<tr class="grp"><td colspan="${fin!=null?7:5}"><span class="dot" style="background:${p.color}"></span> <b>${esc(p.code)}</b> · ${esc(p.name)}
+      <span class="m">· ${p.c.sample? esc(p.c.sample)+' · ' : ''}${esc(p.st.txt)} · ${wellSpan(p.ws)} · sample needed ${fmtUL(p.need)} µL (+10 %: ${fmtUL(p.need*1.1)} µL)</span></td></tr>`+
+    p.steps.map(s=>{ const notes=[];
+      if(s.pd) notes.push(`below ${T.minv} µL: use ${fmtUL(s.pd.v)} µL of a 1:${s.pd.f} dilution`);
+      if(s.over) notes.push('more than the final volume');
+      return `<tr><td class="n" style="text-align:left">${fmtDose(s.dose)}</td><td>${s.wells? rowSpan(s.wells) : ''}</td><td class="n vol${s.over?' bad':''}">${fmtUL(s.v)}</td>${fin!=null?`<td class="n">${fmtUL(s.med)}</td>`:''}<td class="n">${fmtUL(s.v*mix)}</td>${fin!=null?`<td class="n">${fmtUL(s.med*mix)}</td>`:''}<td class="pnote${notes.length?' bad':''}">${esc(notes.join('; '))}</td></tr>`; }).join('')).join('');
+  $('tPip').innerHTML=`<table class="pip"><thead>${head}</thead><tbody>${body}</tbody></table>
+    <p class="note">Mix for ${mix} wells = one well more than the ${g.r} replicates, so there is enough to pipette from.${fin==null? ' Set a final volume per well to get the medium volumes.' : ''}</p>`;
+}
+function plateGrid(cell){
+  let h='<div class="plate"><div class="ph"></div>'; for(let c=0;c<12;c++) h+=`<div class="ph">${c+1}</div>`;
+  for(let r=0;r<8;r++){ h+=`<div class="ph">${ROWS[r]}</div>`; for(let c=0;c<12;c++) h+=cell(wellName(r,c)); }
+  return h+'</div>';
+}
+function setLayout(steps,reps){ T.steps=steps; T.reps=reps; const max=geom().max;
+  while(T.conds.length<max){ const k=T.conds.length; T.conds.push({name:`Condition ${k+1}`, code:`C${k+1}`, sample:'', lo:T.conds[k-1]?.lo??1, hi:T.conds[k-1]?.hi??14, doses:''}); }
+  renderTitr(); }
+
+/* ---- titration: sheet for print / copy -------------------------------- */
+function settingsTitr(){
+  const g=geom(), fin=finalVol();
+  return `${g.n} doses × ${g.r} replicates · ${T.ctrl? 'first dose = untreated control · ' : ''}${T.spacing==='log'? 'logarithmic' : 'linear'} spacing · dose = ${T.unit==='volume'? 'sample volume (µL)' : 'absolute amount (A·µL), volume = dose ÷ mean A '+Math.min(state.lo,state.hi)+'–'+Math.max(state.lo,state.hi)+' nm'}`+(fin!=null? ` · final volume ${fin} µL/well` : '');
+}
+function titrSheetHtml(){
+  const plan=titrPlan(), g=geom(), fin=finalVol(), idx=wellIndex(plan), br='<br style="mso-data-placement:same-cell">', mix=g.r+1;
+  const th=`style="${FONT}font-size:8pt;font-weight:600;color:${SC.muted};text-align:left;padding:2pt 5pt;border-bottom:1.25pt solid ${SC.ink}"`, thn=th.replace('text-align:left','text-align:right');
+  const td=(x,e='')=>`<td style="${FONT}font-size:8.5pt;color:${SC.ink};padding:2pt 5pt;border-bottom:.75pt solid ${SC.rule};vertical-align:top;${e}">${x}</td>`, tdn=(x,e='')=>td(x,'text-align:right;'+e);
+  let map=`<table style="border-collapse:separate;border-spacing:2pt;width:100%;table-layout:fixed"><tr><th style="${FONT}width:12pt"></th>${[...Array(12)].map((_,c)=>`<th style="${FONT}font-size:8pt;color:${SC.muted}">${c+1}</th>`).join('')}</tr>`;
+  for(let r=0;r<8;r++){ map+=`<tr><th style="${FONT}font-size:8pt;color:${SC.muted}">${ROWS[r]}</th>`;
+    for(let c=0;c<12;c++){ const w=wellName(r,c), o=idx[w];
+      if(!o){ map+=`<td style="height:25pt;border:.75pt dashed ${SC.rule};border-radius:5pt"></td>`; continue; }
+      const s=o.p.steps[o.i], a=g.n>1? 0.10+0.40*o.i/(g.n-1) : 0.25;
+      map+=`<td style="${FONT}height:25pt;font-size:7pt;line-height:1.15;text-align:center;vertical-align:middle;background:${rgba(o.p.color,a)};border:1pt solid ${o.p.color};border-radius:5pt;color:${SC.ink}"><b style="color:${o.p.color};font-size:8pt">${esc(o.p.code)}</b>${br}${fmtDose(s.dose)}${br}<b>${isFinite(s.v)? fmtUL(s.v)+' µL' : '–'}</b></td>`; }
+    map+='</tr>'; }
+  map+='</table>';
+  const legend=`<table style="border-collapse:collapse;width:100%;margin-top:6pt"><thead><tr><th ${th}>Short</th><th ${th}>Condition</th><th ${th}>Sample</th><th ${th}>Doses (${doseUnit()})</th><th ${th}>Wells</th><th ${thn}>Sample needed (µL, +10 %)</th></tr></thead><tbody>${
+    plan.filter(p=>p.on).map(p=>`<tr>${td(`<b style="color:${p.color}">${esc(p.code)}</b>`)}${td(esc(p.name),'font-weight:600')}${td(esc(p.c.sample||'–')+` <span style="color:${p.st.bad?SC.bad:SC.muted}">(${esc(p.st.txt)})</span>`)}${td(p.steps.map(s=>fmtDose(s.dose)).join(', '))}${td(wellSpan(p.ws))}${tdn(`${fmtUL(p.need)} (${fmtUL(p.need*1.1)})`)}</tr>`).join('')}</tbody></table>`;
+  const pip=`<table style="border-collapse:collapse;width:100%;margin-top:10pt"><thead><tr><th ${th}>Short</th><th ${th}>Dose</th><th ${th}>Wells</th><th ${thn}>Sample / well (µL)</th>${fin!=null?`<th ${thn}>Medium / well (µL)</th>`:''}<th ${thn}>Mix ${mix} wells: sample</th>${fin!=null?`<th ${thn}>medium</th>`:''}<th ${th}>Note</th></tr></thead><tbody>${
+    plan.filter(p=>p.on).map(p=>p.steps.map(s=>{ const n=[]; if(s.pd) n.push(`use ${fmtUL(s.pd.v)} µL of 1:${s.pd.f}`); if(s.over) n.push('more than final volume');
+      return `<tr>${td(`<b style="color:${p.color}">${esc(p.code)}</b>`)}${td(fmtDose(s.dose))}${td(s.wells? rowSpan(s.wells) : '')}${tdn(fmtUL(s.v),'font-weight:700')}${fin!=null?tdn(fmtUL(s.med)):''}${tdn(fmtUL(s.v*mix))}${fin!=null?tdn(fmtUL(s.med*mix)):''}${td(esc(n.join('; ')),`color:${SC.bad}`)}</tr>`; }).join('')).join('')}</tbody></table>`;
+  return `<div style="${FONT}color:${SC.ink}">
+    <div style="border-bottom:2pt solid ${SC.accent};padding-bottom:4pt;margin-bottom:8pt"><h1 style="${FONT}font-size:15pt;font-weight:600;margin:0">${esc((T.title||'').trim()||'96-well titration')}</h1>
+    <p style="${FONT}font-size:8.5pt;color:${SC.muted};margin:2pt 0 0">${today()} · ${esc(settingsTitr())}</p></div>
+    ${map}${legend}<div style="break-before:page;page-break-before:always"></div>${pip}</div>`;
+}
+function titrText(){
+  const plan=titrPlan(), g=geom(), idx=wellIndex(plan), fin=finalVol(), mix=g.r+1;
+  const out=[(T.title||'').trim()||'96-well titration', `${today()} · ${settingsTitr()}`, '', ['',...[...Array(12)].map((_,c)=>c+1)].join('\t')];
+  for(let r=0;r<8;r++){ const row=[ROWS[r]]; for(let c=0;c<12;c++){ const o=idx[wellName(r,c)]; row.push(o? `${o.p.code} ${fmtDose(o.p.steps[o.i].dose)} | ${fmtUL(o.p.steps[o.i].v)} µL` : ''); } out.push(row.join('\t')); }
+  out.push('', ['Short','Condition','Sample','Dose ('+doseUnit()+')','Wells','Sample / well (µL)',...(fin!=null?['Medium / well (µL)']:[]),`Mix ${mix} wells: sample (µL)`,...(fin!=null?['Mix: medium (µL)']:[]),'Note'].join('\t'));
+  plan.filter(p=>p.on).forEach(p=>p.steps.forEach(s=>out.push([p.code,p.name,p.c.sample||'',fmtDose(s.dose),s.wells?rowSpan(s.wells):'',fmtUL(s.v),...(fin!=null?[fmtUL(s.med)]:[]),fmtUL(s.v*mix),...(fin!=null?[fmtUL(s.med*mix)]:[]),
+    [s.pd?`use ${fmtUL(s.pd.v)} µL of 1:${s.pd.f}`:'', s.over?'more than final volume':''].filter(Boolean).join('; ')].join('\t'))));
+  return out.join('\n');
+}
+
+/* ---- IC50: readout parsing --------------------------------------------- */
+function parseReadout(text){
+  const M=Array.from({length:8},()=>Array(12).fill(NaN)); let r=0;
+  for(const line of String(text||'').split(/\r?\n/)){
+    if(r>=8) break; if(!line.trim()) continue;
+    const sep= line.includes('\t')? '\t' : line.includes(';')? ';' : (/\d\.\d*\s*,\s*-?\d/.test(line)? ',' : null);
+    let t=(sep? line.split(sep) : line.trim().split(/\s+/)).map(x=>x.trim());
+    if(t.length && /^[A-H]$/i.test(t[0])) t=t.slice(1);
+    else if(t.length>12 && t[0]==='') t=t.slice(1);
+    const filled=t.filter(x=>x!=='');
+    if(filled.length>=2 && filled.every((x,i)=>x===String(i+1))) continue;   // the 1 2 3 ... 12 line
+    const v=t.map(num); if(!v.some(isFinite)) continue;
+    v.slice(0,12).forEach((x,c)=>M[r][c]=x); r++;
+  }
+  return {M, rows:r};
+}
+
+/* ---- IC50: 4-parameter log-logistic fit (drc LL.4) ---------------------
+   f(x) = c + (d - c) / (1 + exp(b (ln x - ln e)))   p = [b, c, d, ln e]
+   Least squares on all replicate points, Levenberg-Marquardt from several
+   starts. x = 0 is the limit (d if b > 0, c if b < 0). */
+function llModel(x,p){ const [b,c,d,le]=p; if(!(x>0)) return b>0? d : b<0? c : (c+d)/2;
+  const u=Math.exp(b*(Math.log(x)-le)); if(!isFinite(u)) return c; return c+(d-c)/(1+u); }
+function llGrad(x,p){ const [b,c,d,le]=p;
+  if(!(x>0)) return b>0? [0,0,1,0] : [0,1,0,0];
+  const t=Math.log(x)-le, u=Math.exp(b*t); if(!isFinite(u)) return [0,1,0,0];
+  const g=1/(1+u), gg=g*(1-g);
+  return [-(d-c)*gg*t, 1-g, g, (d-c)*gg*b]; }
+function solve(A,y){ const n=y.length, M=A.map((r,i)=>[...r,y[i]]);
+  for(let i=0;i<n;i++){ let p=i; for(let k=i+1;k<n;k++) if(Math.abs(M[k][i])>Math.abs(M[p][i])) p=k; [M[i],M[p]]=[M[p],M[i]];
+    if(Math.abs(M[i][i])<1e-300) return null;
+    for(let k=0;k<n;k++){ if(k===i) continue; const f=M[k][i]/M[i][i]; for(let j=i;j<=n;j++) M[k][j]-=f*M[i][j]; } }
+  return M.map((r,i)=>r[n]/r[i]); }
+function inv(A){ const n=A.length, out=A.map(()=>Array(n).fill(0));
+  for(let j=0;j<n;j++){ const e=Array(n).fill(0); e[j]=1; const x=solve(A,e); if(!x) return null; for(let i=0;i<n;i++) out[i][j]=x[i]; } return out; }
+function lm(xs,ys,p0){
+  let p=p0.slice(), lam=1e-3;
+  const rss=q=>xs.reduce((a,x,i)=>{ const r=ys[i]-llModel(x,q); return a+r*r; },0);
+  let R=rss(p);
+  for(let it=0;it<500;it++){
+    const A=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]], g=[0,0,0,0];
+    xs.forEach((x,i)=>{ const J=llGrad(x,p), r=ys[i]-llModel(x,p); for(let a=0;a<4;a++){ g[a]+=J[a]*r; for(let b=0;b<4;b++) A[a][b]+=J[a]*J[b]; } });
+    let done=false;
+    while(lam<1e12){
+      const B=A.map((row,a)=>row.map((v,b)=>a===b? v*(1+lam)+1e-12 : v)), dlt=solve(B,g);
+      if(dlt){ const q=p.map((v,a)=>v+dlt[a]); if(Math.abs(q[0])>60) q[0]=Math.sign(q[0])*60; const Rq=rss(q);
+        if(isFinite(Rq) && Rq<=R){ const gain=R-Rq; p=q; R=Rq; lam=Math.max(lam/3,1e-12); if(gain<=1e-13*(R+1e-30)) done=true; break; } }
+      lam*=4;
+    }
+    if(done || lam>=1e12) break;
+  }
+  return {p, rss:R};
+}
+/* Student t: two-sided p and the 97.5 % quantile (for the 95 % CI) */
+function gammln(xx){ const cof=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,0.1208650973866179e-2,-0.5395239384953e-5];
+  let x=xx, y=xx, tmp=x+5.5; tmp-=(x+0.5)*Math.log(tmp); let ser=1.000000000190015; for(const c of cof) ser+=c/++y; return -tmp+Math.log(2.5066282746310005*ser/x); }
+function betacf(a,b,x){ const FP=1e-300; let qab=a+b, qap=a+1, qam=a-1, c=1, d=1-qab*x/qap; if(Math.abs(d)<FP) d=FP; d=1/d; let h=d;
+  for(let m=1;m<=300;m++){ const m2=2*m; let aa=m*(b-m)*x/((qam+m2)*(a+m2)); d=1+aa*d; if(Math.abs(d)<FP) d=FP; c=1+aa/c; if(Math.abs(c)<FP) c=FP; d=1/d; h*=d*c;
+    aa=-(a+m)*(qab+m)*x/((a+m2)*(qap+m2)); d=1+aa*d; if(Math.abs(d)<FP) d=FP; c=1+aa/c; if(Math.abs(c)<FP) c=FP; d=1/d; const del=d*c; h*=del; if(Math.abs(del-1)<3e-14) break; }
+  return h; }
+function betai(a,b,x){ if(x<=0) return 0; if(x>=1) return 1; const bt=Math.exp(gammln(a+b)-gammln(a)-gammln(b)+a*Math.log(x)+b*Math.log(1-x));
+  return x<(a+1)/(a+b+2)? bt*betacf(a,b,x)/a : 1-bt*betacf(b,a,1-x)/b; }
+function tq975(df){ let lo=0, hi=1e4; for(let i=0;i<200;i++){ const m=(lo+hi)/2; if(betai(df/2,0.5,df/(df+m*m))>0.05) lo=m; else hi=m; } return (lo+hi)/2; }
+
+function fit4pl(xs,ys){
+  const N=xs.length, pos=[...new Set(xs.filter(x=>x>0))].sort((a,b)=>a-b);
+  if(N<4 || pos.length<2) return {ok:false, why:'too few points to fit'};
+  const ux=[...new Set(xs)].sort((a,b)=>a-b), meanAt=x=>{ const v=ys.filter((_,i)=>xs[i]===x); return v.reduce((a,b)=>a+b,0)/v.length; };
+  const mlo=meanAt(ux[0]), mhi=meanAt(ux[ux.length-1]), dec=mlo>=mhi, c0=Math.min(mlo,mhi), d0=Math.max(mlo,mhi), mid=(c0+d0)/2;
+  const lp=pos.map(Math.log), mp=pos.map(meanAt); let le0=lp.reduce((a,b)=>a+b,0)/lp.length;
+  for(let i=0;i+1<pos.length;i++) if((mp[i]-mid)*(mp[i+1]-mid)<=0 && mp[i]!==mp[i+1]){ le0=lp[i]+(lp[i+1]-lp[i])*(mid-mp[i])/(mp[i+1]-mp[i]); break; }
+  let best=null; const span=lp[lp.length-1]-lp[0]||1;
+  for(const b0 of [0.5,1,2,4]) for(const dl of [0,-span/2,span/2]){
+    const r=lm(xs,ys,[dec? b0 : -b0, c0, d0, le0+dl]); if(isFinite(r.rss) && (!best || r.rss<best.rss-1e-15)) best=r; }
+  if(!best) return {ok:false, why:'the fit did not converge'};
+  const [b,c,d,le]=best.p, e=Math.exp(le), df=N-4;
+  const A=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]; xs.forEach(x=>{ const J=llGrad(x,best.p); for(let a=0;a<4;a++) for(let q=0;q<4;q++) A[a][q]+=J[a]*J[q]; });
+  let se={b:NaN,c:NaN,d:NaN,e:NaN}, ci=[NaN,NaN];
+  if(df>0){ const C=inv(A), s2=best.rss/df; if(C){ const s=i=>Math.sqrt(Math.max(0,C[i][i]*s2)); se={b:s(0), c:s(1), d:s(2), e:e*s(3)}; const t=tq975(df); ci=[e-t*se.e, e+t*se.e]; } }
+  const my=ys.reduce((a,b)=>a+b,0)/N, tss=ys.reduce((a,y)=>a+(y-my)**2,0);
+  return {ok:true, b, c, d, e, rss:best.rss, df, se, ci, r2: tss>0? 1-best.rss/tss : NaN, n:N, minPos:pos[0], maxDose:pos[pos.length-1]};
+}
+function fitNotes(f){
+  if(!f) return ['no data'];
+  if(!f.ok) return [f.why];
+  const n=[];
+  if(f.e>f.maxDose) n.push('IC50 above the highest dose: extrapolated, unreliable');
+  else if(f.e<f.minPos) n.push('IC50 below the lowest dose: extrapolated, unreliable');
+  if(f.df<=0) n.push('no CI: 4 parameters from 4 points; use more replicates or doses');
+  else if(!(f.ci[0]>0) || f.ci[1]/f.e>5) n.push('wide CI: IC50 poorly defined');
+  if(f.b<0) n.push('response rises with dose');
+  if(f.r2<0.8) n.push(`poor fit (R² ${fmt(f.r2,2)})`);
+  return n;
+}
+const fmtS=v=>!isFinite(v)? '–' : (v!==0&&(Math.abs(v)>=1e4||Math.abs(v)<1e-3))? v.toExponential(2) : String(+v.toPrecision(4));
+
+function ic50Data(){
+  const R=parseReadout(T.raw), blank= T.blank!==''&&isFinite(+T.blank)? +T.blank : 0;
+  const conds=titrPlan().filter(p=>p.on).map(p=>{
+    const pts=[];
+    p.ws.forEach((row,i)=>row.forEach(w=>{ const y=R.M[ROWS.indexOf(w[0])][+w.slice(1)-1]; if(!isFinite(y)) return; pts.push({w, x:p.steps[i].dose, y:y-blank, ex:!!T.excl[w]}); }));
+    let normFail=false;
+    if(T.norm==='pct'){ const ctl=pts.filter(q=>q.x===0&&!q.ex); if(ctl.length){ const m=ctl.reduce((a,q)=>a+q.y,0)/ctl.length; pts.forEach(q=>q.y=q.y/m*100); } else normFail=true; }
+    const use=pts.filter(q=>!q.ex&&isFinite(q.x));
+    const fit= use.length? fit4pl(use.map(q=>q.x), use.map(q=>q.y)) : null;
+    const notes=fitNotes(fit); if(normFail) notes.unshift('no untreated control: shown as measured');
+    return {...p, pts, fit, notes};
+  });
+  return {R, conds};
+}
+const xLabel=()=> (T.xlab||'').trim() || (T.unit==='volume'? 'Sample volume (µL)' : 'Absolute amount (A·µL)');
+const yLabel=()=> (T.ylab||'').trim() || (T.norm==='pct'? 'Response (% of control)' : 'Absorbance (AU)');
+
+/* text wrapping for long names: up to maxLines lines, ellipsis after */
+function wrapText(s, max, maxLines){
+  const words=String(s).split(/\s+/).filter(Boolean), lines=[]; let cur='';
+  for(const w0 of words){ let w=w0;
+    while(w.length>max){ if(cur){ lines.push(cur); cur=''; } lines.push(w.slice(0,max-1)+'-'); w=w.slice(max-1); }
+    if(!cur) cur=w; else if((cur+' '+w).length<=max) cur+=' '+w; else { lines.push(cur); cur=w; } }
+  if(cur) lines.push(cur);
+  if(lines.length>maxLines){ const keep=lines.slice(0,maxLines); let last=keep[maxLines-1]; if(last.length>max-1) last=last.slice(0,max-1); keep[maxLines-1]=last+'…'; return keep; }
+  return lines.length? lines : [''];
+}
+
+/* ---- IC50: plot (SVG) ----------------------------------------------- */
+function niceTicks(a,b,n){ const st=niceStep(b-a||1,n), out=[]; for(let v=Math.ceil(a/st)*st; v<=b+st*1e-9; v+=st) out.push(+v.toPrecision(10)); return out; }
+function plotSvg(list, o){
+  const th=o.theme, W=o.w, H=o.h, titleLines=o.title? wrapText(o.title, o.wrap||44, 2) : [];
+  const m={l:52, r:14, t:titleLines.length? 12+titleLines.length*16 : 12, b:40};
+  const pos=[], ys=[]; list.forEach(c=>c.pts.forEach(q=>{ if(q.x>0) pos.push(q.x); if(isFinite(q.y)) ys.push(q.y); }));
+  const titleSvg=titleLines.map((l,i)=>`<text x="${W/2}" y="${16+i*16}" text-anchor="middle" font-size="13" font-weight="600" fill="${th.ink}">${esc(l)}</text>`).join('');
+  const full=o.title? `<title>${esc(o.title)}</title>` : '';
+  if(!pos.length || !ys.length) return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Sans, Calibri, Arial, sans-serif">${full}${titleSvg}<text x="${W/2}" y="${H/2}" text-anchor="middle" font-size="12" fill="${th.muted}">no values for these wells</text></svg>`;
+  const lmin=Math.log10(Math.min(...pos)), lmax=Math.log10(Math.max(...pos)), span=Math.max(lmax-lmin,0.3);
+  const zero=list.some(c=>c.pts.some(q=>q.x===0)), gap=span*0.2;
+  const L0= zero? lmin-gap*1.7 : lmin-span*0.08, L1=lmax+span*0.08, zpos=lmin-gap*1.35, brk=lmin-gap*0.75;
+  const X=l=>m.l+(l-L0)/(L1-L0)*(W-m.l-m.r), xOf=x=> x>0? X(Math.log10(x)) : X(zpos);
+  let y0=Math.min(...ys), y1=Math.max(...ys);
+  list.forEach(c=>{ if(c.fit&&c.fit.ok){ for(const v of [c.fit.c,c.fit.d]) if(isFinite(v) && v>y0-(y1-y0) && v<y1+(y1-y0)){ y0=Math.min(y0,v); y1=Math.max(y1,v); } } });
+  if(y1<=y0){ y1=y0+1; } const pad=(y1-y0)*0.08; y0-=pad; y1+=pad;
+  const Y=v=>H-m.b-(v-y0)/(y1-y0)*(H-m.t-m.b);
+  let g='';
+  niceTicks(y0,y1,4).forEach(v=>{ g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="${th.rule}" stroke-width="1" opacity=".6"/><text x="${m.l-6}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="${th.muted}">${+v.toPrecision(4)}</text>`; });
+  let xt=[]; if(lmax-lmin>=0.95){ for(let k=Math.ceil(lmin-gap*0.5);k<=Math.floor(L1);k++) xt.push(k); } else xt=[...new Set(pos)].map(Math.log10);
+  xt.forEach(l=>{ const v=Math.pow(10,l); g+=`<line x1="${X(l)}" x2="${X(l)}" y1="${H-m.b}" y2="${H-m.b+4}" stroke="${th.muted}"/><text x="${X(l)}" y="${H-m.b+16}" text-anchor="middle" font-size="11" fill="${th.muted}">${+v.toPrecision(3)}</text>`; });
+  g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${H-m.b}" y2="${H-m.b}" stroke="${th.muted}"/><line x1="${m.l}" x2="${m.l}" y1="${m.t}" y2="${H-m.b}" stroke="${th.muted}"/>`;
+  if(zero){ g+=`<line x1="${X(zpos)}" x2="${X(zpos)}" y1="${H-m.b}" y2="${H-m.b+4}" stroke="${th.muted}"/><text x="${X(zpos)}" y="${H-m.b+16}" text-anchor="middle" font-size="11" fill="${th.muted}">0</text>
+    <rect x="${X(brk)-4}" y="${H-m.b-5}" width="8" height="10" fill="${th.bg}"/><path d="M${X(brk)-6} ${H-m.b+5} l5 -10 M${X(brk)} ${H-m.b+5} l5 -10" stroke="${th.muted}"/>`; }
+  g+=`<text x="${(m.l+W-m.r)/2}" y="${H-6}" text-anchor="middle" font-size="11.5" fill="${th.ink}">${esc(o.xlab)}</text><text transform="translate(13 ${(m.t+H-m.b)/2}) rotate(-90)" text-anchor="middle" font-size="11.5" fill="${th.ink}">${esc(o.ylab)}</text>`;
+  const clipId='c'+Math.random().toString(36).slice(2,8);
+  let curves='', pts='', labels='';
+  list.forEach((c,ci)=>{
+    const f=c.fit;
+    if(f&&f.ok){ let d=''; const a=lmin-gap*0.55, b=L1;
+      for(let i=0;i<=160;i++){ const l=a+(b-a)*i/160, v=llModel(Math.pow(10,l),[f.b,f.c,f.d,Math.log(f.e)]); d+=(i?'L':'M')+X(l).toFixed(1)+' '+Y(v).toFixed(1); }
+      curves+=`<path d="${d}" fill="none" stroke="${c.color}" stroke-width="2"/>`;
+      const le=Math.log10(f.e); if(le>=L0&&le<=L1) curves+=`<line x1="${X(le)}" x2="${X(le)}" y1="${m.t}" y2="${H-m.b}" stroke="${c.color}" stroke-dasharray="4 3" stroke-width="1.2"/>`; }
+    c.pts.forEach(q=>{ if(!isFinite(q.x)) return; const cx=xOf(q.x), cy=Y(q.y);
+      pts+= q.ex? `<g stroke="${th.muted}" stroke-width="1.3"><path d="M${cx-3.5} ${cy-3.5}L${cx+3.5} ${cy+3.5}M${cx-3.5} ${cy+3.5}L${cx+3.5} ${cy-3.5}"/></g>`
+                : `<circle cx="${cx}" cy="${cy}" r="3.4" fill="${c.color}" fill-opacity=".8"><title>${esc(`${q.w}: ${fmtDose(q.x)} → ${+q.y.toPrecision(4)}`)}</title></circle>`; });
+  });
+  if(o.label && list.length===1){ const c=list[0], f=c.fit;
+    const txt= f&&f.ok? `IC50 = ${fmtS(f.e)}` : (f? f.why : ''), sub= f&&f.ok&&f.df>0? `95 % CI ${fmtS(f.ci[0])} – ${fmtS(f.ci[1])}` : '';
+    const dec= !(f&&f.ok) || f.b>0, right= !(f&&f.ok) || X(Math.log10(f.e)) < m.l+(W-m.l-m.r)*0.58;
+    // decreasing curve: upper right and lower left are free; pick the side away from the IC50 line
+    const lx= right? W-m.r-4 : m.l+8, anc= right? 'end' : 'start';
+    const ly= (right===dec)? m.t+14 : H-m.b-(sub?22:8);
+    labels=`<text x="${lx}" y="${ly}" text-anchor="${anc}" font-size="12" font-weight="600" fill="${th.ink}">${esc(txt)}</text>${sub?`<text x="${lx}" y="${ly+14}" text-anchor="${anc}" font-size="10.5" fill="${th.muted}">${esc(sub)}</text>`:''}`; }
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Sans, Calibri, Arial, sans-serif">${full}${titleSvg}
+    <defs><clipPath id="${clipId}"><rect x="${m.l}" y="${m.t}" width="${W-m.l-m.r}" height="${H-m.t-m.b}"/></clipPath></defs>
+    ${g}<g clip-path="url(#${clipId})">${curves}</g>${pts}${labels}</svg>`;
+}
+function screenTheme(){ const cs=getComputedStyle(document.documentElement), v=k=>cs.getPropertyValue(k).trim(); return {ink:v('--ink'), muted:v('--muted'), rule:v('--rule'), bg:v('--surface')}; }
+const printTheme={ink:'#1A242C', muted:'#5A6873', rule:'#C9D3DA', bg:'#FFFFFF'};
+
+/* ---- IC50: screen -------------------------------------------------------- */
+let IC=null;
+function ic50Update(){
+  if(!T) return;
+  IC=ic50Data();
+  const idx={}; IC.conds.forEach(c=>c.ws.forEach((row,i)=>row.forEach(w=>idx[w]={c,i})));
+  if(!IC.R.rows){ $('rPlate').innerHTML='<p class="empty">Paste a plate readout to start.</p>'; }
+  else $('rPlate').innerHTML=plateGrid(w=>{ const v=IC.R.M[ROWS.indexOf(w[0])][+w.slice(1)-1], o=idx[w];
+    const val=isFinite(v)? +v.toPrecision(4) : '–';
+    if(!o) return `<div class="pw empty rv" title="${w}: not in the layout">${isFinite(v)? `<span class="m">${val}</span>` : ''}</div>`;
+    const ex=!!T.excl[w];
+    return `<div class="pw rv click${ex?' ex':''}" data-ex="${w}" style="border-color:${o.c.color};background:${rgba(o.c.color,0.08)}" title="${esc(`${w} · ${o.c.name} · dose ${fmtDose(o.c.steps[o.i].dose)} · ${ex? 'left out – click to use' : 'click to leave out'}`)}">
+      <b style="color:${o.c.color}">${esc(o.c.code)}</b><span class="pv">${val}</span><span class="pd">${fmtDose(o.c.steps[o.i].dose)}</span></div>`; });
+  const u=doseUnit();
+  $('rTable').innerHTML= !IC.R.rows? '' : `<table class="res"><thead><tr><th></th><th>Condition</th><th class="n">IC50 (${u})</th><th class="n">95 % CI</th><th class="n">Slope</th><th class="n">Top</th><th class="n">Bottom</th><th class="n">R²</th><th class="n">n</th><th>Note</th></tr></thead><tbody>${
+    IC.conds.map(c=>{ const f=c.fit, ok=f&&f.ok;
+      return `<tr><td><span class="dot" style="background:${c.color}"></span> <b>${esc(c.code)}</b></td><td class="name">${esc(c.name)}${c.c.sample&&norm(c.c.sample)!==norm(c.name)?`<div class="m">${esc(c.c.sample)}</div>`:''}</td>
+        <td class="n vol">${ok? fmtS(f.e) : '–'}</td><td class="n">${ok&&f.df>0? `${fmtS(f.ci[0])} – ${fmtS(f.ci[1])}` : '–'}</td><td class="n">${ok? fmtS(f.b) : '–'}</td><td class="n">${ok? fmtS(f.d) : '–'}</td><td class="n">${ok? fmtS(f.c) : '–'}</td><td class="n">${ok? fmt(f.r2,3) : '–'}</td><td class="n">${f&&f.ok? f.n : c.pts.filter(q=>!q.ex).length}</td>
+        <td class="note">${esc(c.notes.join('; '))}</td></tr>`; }).join('')}</tbody></table>
+    <p class="note">Slope &gt; 0 means the response falls with dose (drc convention). Top = response without sample, bottom = response at saturating dose.</p>`;
+  $('rOverlay').checked=!!T.overlay; $('rX').placeholder=xLabel(); $('rY').placeholder=yLabel();
+  if(!IC.R.rows){ $('rPlots').innerHTML=''; return; }
+  const th=screenTheme();
+  if(T.overlay) $('rPlots').innerHTML=`<div class="plotcard wide">${plotSvg(IC.conds,{w:760,h:420,theme:th,xlab:xLabel(),ylab:yLabel()})}</div>
+    <div class="legend">${IC.conds.map(c=>`<span class="li"><span class="dot" style="background:${c.color}"></span><b>${esc(c.code)}</b> ${esc(c.name)} · IC50 ${c.fit&&c.fit.ok? fmtS(c.fit.e) : '–'}</span>`).join('')}</div>`;
+  else $('rPlots').innerHTML=`<div class="plots">${IC.conds.map(c=>`<div class="plotcard">${plotSvg([c],{w:380,h:290,theme:th,title:`${c.code} · ${c.name}`,wrap:46,label:true,xlab:xLabel(),ylab:yLabel()})}</div>`).join('')}</div>`;
+}
+function ic50Text(){
+  if(!IC) ic50Update(); const u=doseUnit();
+  const out=[(T.title||'').trim()||'IC50', `${today()} · 4-parameter log-logistic (drc LL.4) · response: ${yLabel()}${T.blank!==''?` · blank ${T.blank} subtracted`:''}`,
+    ['Short','Condition','Sample',`IC50 (${u})`,'CI 2.5 %','CI 97.5 %','Slope','Top','Bottom','R²','n','Note'].join('\t')];
+  IC.conds.forEach(c=>{ const f=c.fit, ok=f&&f.ok; out.push([c.code,c.name,c.c.sample||'',ok?fmtS(f.e):'',ok&&f.df>0?fmtS(f.ci[0]):'',ok&&f.df>0?fmtS(f.ci[1]):'',ok?fmtS(f.b):'',ok?fmtS(f.d):'',ok?fmtS(f.c):'',ok?fmt(f.r2,3):'',ok?f.n:'',c.notes.join('; ')].join('\t')); });
+  const ex=Object.keys(T.excl).filter(k=>T.excl[k]); if(ex.length) out.push('', 'Left out: '+ex.sort().join(', '));
+  return out.join('\n');
+}
+function ic50TableHtml(){
+  const u=doseUnit(), th=`style="${FONT}font-size:8.5pt;font-weight:600;color:${SC.muted};text-align:left;padding:3pt 5pt;border-bottom:1.25pt solid ${SC.ink}"`, thn=th.replace('text-align:left','text-align:right');
+  const td=(x,e='')=>`<td style="${FONT}font-size:9pt;color:${SC.ink};padding:3pt 5pt;border-bottom:.75pt solid ${SC.rule};vertical-align:top;${e}">${x}</td>`, tdn=(x,e='')=>td(x,'text-align:right;'+e);
+  return `<table style="border-collapse:collapse;width:100%"><thead><tr><th ${th}>Short</th><th ${th}>Condition</th><th ${thn}>IC50 (${u})</th><th ${thn}>95 % CI</th><th ${thn}>Slope</th><th ${thn}>Top</th><th ${thn}>Bottom</th><th ${thn}>R²</th><th ${thn}>n</th><th ${th}>Note</th></tr></thead><tbody>${
+    IC.conds.map(c=>{ const f=c.fit, ok=f&&f.ok; return `<tr>${td(`<b style="color:${c.color}">${esc(c.code)}</b>`)}${td(esc(c.name)+(c.c.sample&&norm(c.c.sample)!==norm(c.name)?`<br><span style="color:${SC.muted};font-size:8pt">${esc(c.c.sample)}</span>`:''),'font-weight:600')}${tdn(ok?fmtS(f.e):'–','font-weight:700')}${tdn(ok&&f.df>0?`${fmtS(f.ci[0])} – ${fmtS(f.ci[1])}`:'–')}${tdn(ok?fmtS(f.b):'–')}${tdn(ok?fmtS(f.d):'–')}${tdn(ok?fmtS(f.c):'–')}${tdn(ok?fmt(f.r2,3):'–')}${tdn(ok?f.n:'–')}${td(esc(c.notes.join('; ')),`color:${SC.bad};font-size:8pt`)}</tr>`; }).join('')}</tbody></table>`;
+}
+function icSheetHtml(){
+  ic50Update(); const ex=Object.keys(T.excl).filter(k=>T.excl[k]).sort();
+  const plots= T.overlay? `<div style="margin-top:10pt">${plotSvg(IC.conds,{w:760,h:400,theme:printTheme,xlab:xLabel(),ylab:yLabel()})}</div>`
+    : `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8pt;margin-top:10pt">${IC.conds.map(c=>`<div style="break-inside:avoid">${plotSvg([c],{w:380,h:280,theme:printTheme,title:`${c.code} · ${c.name}`,wrap:46,label:true,xlab:xLabel(),ylab:yLabel()})}</div>`).join('')}</div>`;
+  return `<div style="${FONT}color:${SC.ink}">
+    <div style="border-bottom:2pt solid ${SC.accent};padding-bottom:4pt;margin-bottom:8pt"><h1 style="${FONT}font-size:15pt;font-weight:600;margin:0">${esc((T.title||'').trim()||'IC50')}</h1>
+    <p style="${FONT}font-size:8.5pt;color:${SC.muted};margin:2pt 0 0">${today()} · 4-parameter log-logistic (as drc LL.4), fitted to every replicate well · ${esc(settingsTitr())}${T.blank!==''?` · blank ${esc(T.blank)} subtracted`:''} · response: ${esc(yLabel())}${ex.length?` · left out: ${ex.join(', ')}`:''}</p></div>
+    ${ic50TableHtml()}${plots}</div>`;
+}
+async function copyRich(html, text, btn){
+  let ok=false;
+  try{ if(window.ClipboardItem && navigator.clipboard?.write){ await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([text],{type:'text/plain'})})]); ok=true; } }catch(e){}
+  if(!ok){ try{ const d=document.createElement('div'); d.innerHTML=html; d.style.cssText='position:fixed;left:-9999px;top:0;background:#fff';
+      document.body.appendChild(d); const r=document.createRange(); r.selectNodeContents(d); const sel=getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      ok=document.execCommand('copy'); sel.removeAllRanges(); d.remove(); }catch(e){} }
+  if(!ok){ await copyText(text, btn); return; }
+  const old=btn.dataset.label||btn.textContent; btn.dataset.label=old; btn.textContent='Copied'; setTimeout(()=>btn.textContent=old,1500);
+}
+
+/* ---- tabs + events ------------------------------------------------------- */
+function showTab(t){
+  if(!['nano','titr','ic50'].includes(t)) t='nano';
+  state.tab=t; ['nano','titr','ic50'].forEach(x=>{ $('tab-'+x).hidden= x!==t; const b=document.querySelector(`.tabs [data-tab="${x}"]`); b.setAttribute('aria-selected', x===t? 'true' : 'false'); });
+  save(); if(t==='titr') updateTitr(); if(t==='ic50') ic50Update();
+}
+function titrInit(){
+  $('tSteps').innerHTML=[2,3,4,5,6,7,8].map(n=>`<option value="${n}">${n}</option>`).join('');
+  $('tReps').innerHTML=[1,2,3,4,6].map(n=>`<option value="${n}">${n}</option>`).join('');
+  document.querySelector('.tabs').addEventListener('click',e=>{ const b=e.target.closest('[data-tab]'); if(b) showTab(b.dataset.tab); });
+  $('preset84').addEventListener('click',()=>setLayout(8,3)); $('preset48').addEventListener('click',()=>setLayout(4,3));
+  $('tSteps').addEventListener('change',e=>setLayout(+e.target.value,T.reps)); $('tReps').addEventListener('change',e=>setLayout(T.steps,+e.target.value));
+  $('tCtrl').addEventListener('change',e=>{ T.ctrl=e.target.checked; updateTitr(); });
+  $('tSpacing').addEventListener('change',e=>{ T.spacing=e.target.value; updateTitr(); });
+  $('tUnit').addEventListener('change',e=>{ T.unit=e.target.value; updateTitr(); });
+  $('tFinal').addEventListener('input',e=>{ T.final=e.target.value; updateTitr(); });
+  $('tMin').addEventListener('input',e=>{ T.minv=e.target.value; updateTitr(); });
+  $('tTitle').addEventListener('input',e=>{ T.title=e.target.value; save(); });
+  $('tConds').addEventListener('input',e=>{ const el=e.target, k=+el.dataset.k, f=el.dataset.f; if(!T.conds[k]||!f) return; T.conds[k][f]=el.value; updateTitr(); });
+  $('tConds').addEventListener('click',e=>{ const b=e.target.closest('[data-cdel]'); if(!b) return; T.conds.splice(+b.dataset.cdel,1); renderTitr(); });
+  $('tAdd').addEventListener('click',()=>{ const k=T.conds.length, prev=T.conds[k-1]||{}; T.conds.push({name:`Condition ${k+1}`, code:`C${k+1}`, sample:'', lo:prev.lo??1, hi:prev.hi??14, doses:''}); renderTitr();
+    const i=document.querySelector(`#tConds .cname[data-k="${k}"]`); if(i){ i.focus(); i.select(); } });
+  $('tCopy').addEventListener('click',e=>copyRich(titrSheetHtml(), titrText(), e.currentTarget));
+  let t; $('rRaw').addEventListener('input',()=>{ clearTimeout(t); t=setTimeout(()=>{ T.raw=$('rRaw').value; save(); ic50Update(); },250); });
+  $('rBlank').addEventListener('input',e=>{ T.blank=e.target.value; save(); ic50Update(); });
+  $('rNorm').addEventListener('change',e=>{ T.norm=e.target.value; save(); ic50Update(); });
+  $('rX').addEventListener('input',e=>{ T.xlab=e.target.value; save(); ic50Update(); });
+  $('rY').addEventListener('input',e=>{ T.ylab=e.target.value; save(); ic50Update(); });
+  $('rOverlay').addEventListener('change',e=>{ T.overlay=e.target.checked; save(); ic50Update(); });
+  $('rPlate').addEventListener('click',e=>{ const w=e.target.closest('[data-ex]'); if(!w) return; const k=w.dataset.ex; if(T.excl[k]) delete T.excl[k]; else T.excl[k]=true; save(); ic50Update(); });
+  $('rCopy').addEventListener('click',e=>{ ic50Update(); copyRich(`<div style="${FONT}">${ic50TableHtml()}</div>`, ic50Text(), e.currentTarget); });
+  if(isLocal){ $('tPrint').hidden=false; $('rPrint').hidden=false;
+    $('tPrint').addEventListener('click',()=>{ buildSheet(); window.print(); }); $('rPrint').addEventListener('click',()=>{ buildSheet(); window.print(); }); }
+  $('rRaw').value=T.raw||''; $('rBlank').value=T.blank; $('rNorm').value=T.norm; $('rX').value=T.xlab||''; $('rY').value=T.ylab||'';
+}
+
 init();
 </script>
 </body>
