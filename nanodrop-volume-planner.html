@@ -68,8 +68,27 @@ th{font-weight:600;color:var(--muted);font-size:12.5px}
 td.n,th.n{text-align:right}
 td.vol{font-weight:600}
 tr.blank td{color:var(--muted)}
+tr[draggable="true"]{cursor:grab}
+tr.hl td{background:var(--accent-soft)}
 .bad{color:var(--bad)}
 .tag{display:inline-block;font-size:12px;color:var(--muted);border:1px solid var(--rule);border-radius:3px;padding:0 5px;margin-left:6px}
+/* spectrum chart */
+#chart{position:relative}
+.chart{width:100%;height:auto;display:block;touch-action:none;user-select:none}
+.chart .ax{stroke:var(--rule);stroke-width:1}
+.chart text{fill:var(--muted);font-size:11px;font-family:inherit}
+.chart .sp{fill:none;stroke:var(--muted);stroke-width:1.2;opacity:.45;transition:opacity .15s;pointer-events:none}
+.chart text,.chart .edge,.chart .ax{pointer-events:none}
+.chart .sp.hl{stroke:var(--accent);stroke-width:2.6;opacity:1}
+.chart.dim .sp:not(.hl){opacity:.15}
+.chart .band{fill:var(--accent);opacity:.13;cursor:grab}
+.chart .band:active{cursor:grabbing}
+.chart .edge{stroke:var(--accent);stroke-width:2}
+.chart .grip{fill:transparent;cursor:ew-resize}
+.chart .refl{stroke:var(--well-ink);stroke-width:1.5;stroke-dasharray:4 3;pointer-events:none}
+.chart .rlab{fill:var(--accent);font-weight:600}
+.chart .reflab{fill:var(--well-ink)}
+.tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:4px 8px;font-size:12.5px;box-shadow:0 2px 6px rgba(0,0,0,.12);white-space:nowrap;display:none}
 /* slides */
 .slides{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
 .slidecard{min-width:0}
@@ -81,10 +100,17 @@ tr.blank td{color:var(--muted)}
 .slidescroll{overflow-x:auto}
 .slide{position:relative;min-width:680px;aspect-ratio:75.5/25.5;background:var(--slide);border:1px solid var(--slide-edge);border-radius:8px;padding:5% 4% 5% 9%;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(2,1fr);gap:4%}
 .slide::before{content:"ibidi µ-Slide 8 Well";position:absolute;left:2.5%;top:50%;writing-mode:vertical-rl;transform:translateY(-50%) rotate(180deg);font-size:11px;letter-spacing:.06em;color:var(--muted);white-space:nowrap}
-.well{background:var(--well);border:1.5px solid var(--slide-edge);border-radius:10px;display:flex;flex-direction:column;padding:6px 8px;min-width:0;position:relative}
+.well{background:var(--well);border:1.5px solid var(--slide-edge);border-radius:10px;display:flex;flex-direction:column;padding:6px 8px;min-width:0;position:relative;transition:background .12s,border-color .12s}
 .well.filled{background:var(--well-filled);border-color:var(--well-ink)}
 .well.over{border-color:var(--bad)}
+.well.hl{background:var(--accent-soft);border-color:var(--accent)}
+.well.drop{outline:2px dashed var(--accent);outline-offset:2px}
+.well .head{display:flex;align-items:baseline;gap:6px;cursor:grab}
+.well .co{font-size:16px;font-weight:600;color:var(--accent);letter-spacing:.02em}
 .well .no{font-size:11px;color:var(--muted)}
+.well .x{margin-left:auto;border:0;background:transparent;color:var(--muted);padding:0 2px;font-size:16px;line-height:1;visibility:hidden}
+.well:hover .x,.well:focus-within .x{visibility:visible}
+.well .x:hover{color:var(--bad)}
 .well input{font:inherit;color:var(--ink);background:transparent;border:0;border-bottom:1px solid var(--rule);padding:2px 0;min-width:0}
 .well input:focus{border-bottom-color:var(--accent);outline:none}
 .well .wname{width:100%;font-size:13px;font-weight:500}
@@ -95,14 +121,21 @@ tr.blank td{color:var(--muted)}
 .well.over .v{color:var(--bad)}
 .well .v small{font-size:12px;font-weight:500}
 .well .m{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 14px}
+.chips .lbl{color:var(--muted);font-size:13px;margin-right:2px}
+.chip{font:inherit;font-size:13px;border:1px solid var(--rule);border-radius:999px;padding:3px 10px;background:var(--surface);cursor:grab}
+.chip:hover,.chip.hl{border-color:var(--accent);background:var(--accent-soft)}
+.chips .done{color:var(--muted);font-size:13px}
 .empty{color:var(--muted);padding:30px 8px;text-align:center}
 .masks{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 14px;padding:10px 12px;background:var(--bg);border-radius:4px;font-size:14px}
 .masks select,.masks input{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:5px 8px;min-width:0}
 .masks input{flex:1 1 140px}
 .masks .lbl{color:var(--muted)}
+.order{font-size:14px;color:var(--muted)}
+.order select{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:5px 8px}
 .note{color:var(--muted);font-size:13px;margin:10px 0 0}
 @media print{
-  .masks{display:none!important} .well input{border:0}
+  .masks,.chips,#chartPanel{display:none!important} .well input{border:0} .well .x{display:none}
   body{background:#fff} .noprint,.grid>section:first-child{display:none!important}
   .grid{display:block} .panel{border:0;padding:0} .slidecard{break-inside:avoid}
 }
@@ -112,7 +145,7 @@ tr.blank td{color:var(--muted)}
 <div class="wrap">
 <header>
   <h1>NanoDrop volume planner</h1>
-  <p class="lede">Paste a NanoDrop spectrum export. Each sample gets its mean absorbance over a wavelength range, and the volume needed to reach a fixed absolute amount, laid out on ibidi 8-well slides.</p>
+  <p class="lede">Paste a NanoDrop spectrum export. Each sample gets its mean absorbance over a wavelength range, and the volume needed to reach a fixed absolute amount, laid out on ibidi 8-well slides with well coordinates A1–D2.</p>
 </header>
 <main class="grid">
   <section>
@@ -134,6 +167,11 @@ tr.blank td{color:var(--muted)}
   </section>
 
   <section id="out">
+    <div class="panel" id="chartPanel">
+      <div class="tblhead"><h2>Spectra</h2></div>
+      <p class="hint" style="margin:0 0 8px">Drag the shaded range to move it, or its edges to resize it. Click anywhere else in the plot to put the single wavelength there. Point at a curve, a table row or a well to highlight that sample.</p>
+      <div id="chart"><p class="empty">Spectra appear here once an export is pasted.</p></div>
+    </div>
     <div class="panel">
       <div id="warn"></div>
       <div class="tblhead"><h2>Samples</h2><div class="row noprint"><button type="button" id="copyTable">Copy table</button><button type="button" id="saveCsv" hidden>Save as CSV</button></div></div>
@@ -141,10 +179,14 @@ tr.blank td{color:var(--muted)}
     </div>
     <div class="panel">
       <div class="tblhead"><h2>Slide layout</h2>
-        <div class="row noprint"><button type="button" class="primary" id="autofill">Fill slides in sample order</button><button type="button" id="addSlide">Add slide</button><button type="button" id="copyPlan">Copy plan</button><button type="button" id="print" hidden>Print layout</button></div></div>
-      <p class="hint noprint" style="margin:0 0 12px">Type a sample name into each well, or fill all slides at once. Names are matched to the NanoDrop data (case and extra spaces don’t matter), so you can set up the mask before measuring. Leave a well’s amount empty to use the target amount.</p>
+        <div class="row noprint"><label class="order">Fill order <select id="order" aria-label="Fill order">
+            <option value="col">by column: A1, A2, B1, B2 …</option>
+            <option value="row">by row: A1, B1, C1, D1 …</option></select></label>
+          <button type="button" class="primary" id="autofill">Fill slides in sample order</button><button type="button" id="addSlide">Add slide</button><button type="button" id="copyPlan">Copy plan</button><button type="button" id="print" hidden>Print layout</button></div></div>
+      <p class="hint noprint" style="margin:0 0 12px">Drag a sample (chip below or table row) onto a well, or click a chip to put it in the next free well. Drag a well by its coordinate to move it — dropping on a filled well swaps the two. Names are matched to the NanoDrop data (case and extra spaces don’t matter), so you can set up the mask before measuring. Leave a well’s amount empty to use the target amount. Enter jumps to the next well.</p>
       <div class="masks noprint"><span class="lbl">Saved masks</span><select id="maskList" aria-label="Saved masks"></select><button type="button" id="maskLoad">Load</button><button type="button" id="maskDelete">Delete</button>
         <input id="maskName" type="text" placeholder="Name for this mask" aria-label="Mask name"><button type="button" id="maskSave">Save mask</button></div>
+      <div class="chips noprint" id="chips"></div>
       <datalist id="samplelist"></datalist>
       <div class="slides" id="slides"></div>
     </div>
@@ -156,8 +198,18 @@ const $=id=>document.getElementById(id);
 const KEY='nanodrop-volume-planner.v1';
 const isLocal = location.protocol==='file:' || ['localhost','127.0.0.1','::1'].includes(location.hostname);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const state={raw:'', target:13, lo:250, hi:300, ref:200, maxv:'', slides:[], masks:{}};
-let samples=[], lastTsv='', lastPlan='';
+const state={raw:'', target:13, lo:250, hi:300, ref:200, maxv:'', order:'col', slides:[], masks:{}};
+let samples=[], lastTsv='', lastPlan='', P={samples:[]}, CH=null, hoverName='';
+
+/* ---- well coordinates ------------------------------------------------
+   The ibidi µ-Slide 8 Well is 2 rows x 4 columns. Columns are lettered A-D
+   (left to right), rows numbered 1-2 (top, bottom) - the same convention as
+   the plate layouts: A1 above A2, then B1 above B2, ... Wells are stored in
+   reading order (index 0-3 top row, 4-7 bottom row). */
+const COLS='ABCD';
+const coord=wi=>COLS[wi%4]+(wi<4?1:2);
+const ORDER={col:[0,4,1,5,2,6,3,7], row:[0,1,2,3,4,5,6,7]};
+const slideTag=si=>state.slides.length>1? `${si+1}·` : '';
 
 function num(s){ if(s==null) return NaN; s=String(s).trim().replace(',', '.'); return /^-?\d*\.?\d+(e-?\d+)?$/i.test(s)? parseFloat(s) : NaN; }
 function fmt(v,d){ return isFinite(v)? v.toFixed(d) : '–'; }
@@ -181,7 +233,7 @@ function parse(text){
 }
 
 function analyse(){
-  const p=parse(state.raw); const warn=[];
+  const p=parse(state.raw); P=p; const warn=[];
   if(p.error) warn.push(p.error);
   const lo=Math.min(state.lo,state.hi), hi=Math.max(state.lo,state.hi);
   if(p.n && (lo<p.wlMin || hi>p.wlMax)) warn.push(`The export covers ${p.wlMin}–${p.wlMax} nm; the range was cut to fit.`);
@@ -198,17 +250,26 @@ function analyse(){
   return warn;
 }
 
+/* full rebuild (data, settings or slide structure changed) */
 function render(){
   save();
-  const warn=analyse();
-  $('warn').innerHTML = warn.length? `<ul>${warn.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>` : '';
-  renderTable(); renderSlides(); renderMasks();
+  setWarn(analyse());
+  renderTable(); renderSlides(); renderChips(); renderMasks(); renderChart();
+  applyHighlight();
 }
+/* light update (well contents or range changed): keeps inputs and focus */
+function refresh(){
+  save();
+  setWarn(analyse());
+  renderTable(); updateWells(); renderChips(); updateChart();
+  applyHighlight();
+}
+function setWarn(warn){ $('warn').innerHTML = warn.length? `<ul>${warn.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>` : ''; }
 
 const norm=x=>String(x||'').trim().replace(/\s+/g,' ').toLowerCase();
 function sampleFor(name){ const n=norm(name); return n? samples.find(s=>!s.blank && norm(s.name)===n) : null; }
 function amountOf(w){ return (w.amount!==''&&w.amount!=null&&isFinite(+w.amount))? +w.amount : state.target; }
-function wellsOf(name){ const out=[]; state.slides.forEach((s,i)=>s.wells.forEach((w,j)=>{ if(norm(w.name)===norm(name)) out.push(`${state.slides.length>1? (i+1)+'.' : ''}${j+1}`); })); return out; }
+function wellsOf(name){ const out=[]; state.slides.forEach((s,i)=>s.wells.forEach((w,j)=>{ if(norm(w.name)===norm(name)) out.push(slideTag(i)+coord(j)); })); return out; }
 const over=v=> state.maxv!=='' && isFinite(+state.maxv) && v>+state.maxv;
 
 function renderTable(){
@@ -217,7 +278,7 @@ function renderTable(){
   const head=['Sample',`A ${state.ref} nm`,`Mean A ${lo}–${hi} nm`,'Target amount (A·µL)','Volume for target (µL)','Well'];
   const rows=samples.map(s=>[s.name, fmt(s.ref,3), s.blank?'–':fmt(s.mean,3), s.blank?'–':fmt(state.target,2), s.blank?'–':fmt(s.vol,2), wellsOf(s.name).join(', ')]);
   $('table').innerHTML=`<table><thead><tr>${head.map((h,i)=>`<th class="${i&&i<5?'n':''}">${esc(h)}</th>`).join('')}</tr></thead><tbody>${
-    samples.map((s,i)=>`<tr class="${s.blank?'blank':''}">${rows[i].map((c,j)=>`<td class="${j&&j<5?'n':''}${j===4?' vol':''}${j===4&&over(s.vol)?' bad':''}">${esc(c)}${j===0&&s.blank?'<span class="tag">blank</span>':''}</td>`).join('')}</tr>`).join('')
+    samples.map((s,i)=>`<tr class="${s.blank?'blank':''}" data-name="${esc(s.name)}"${s.blank?'':' draggable="true" title="Drag onto a well"'}>${rows[i].map((c,j)=>`<td class="${j&&j<5?'n':''}${j===4?' vol':''}${j===4&&over(s.vol)?' bad':''}">${esc(c)}${j===0&&s.blank?'<span class="tag">blank</span>':''}</td>`).join('')}</tr>`).join('')
   }</tbody></table><p class="note">Mean over ${samples[0]?.n||0} wavelength points per sample.</p>`;
   lastTsv=[head.join('\t'),...rows.map(r=>r.join('\t'))].join('\n');
 }
@@ -227,9 +288,10 @@ function renderSlides(){
   $('slides').innerHTML=state.slides.map((sl,si)=>`<div class="slidecard"><div class="slidehead"><input type="text" data-slide="${si}" class="slidename" value="${esc(sl.name)}" aria-label="Slide name">
       <span class="sum" data-sum="${si}"></span>
       <button type="button" class="noprint" data-clear="${si}">Clear</button>${state.slides.length>1?`<button type="button" class="noprint" data-remove="${si}">Remove</button>`:''}</div>
-      <div class="slidescroll"><div class="slide">${sl.wells.map((w,wi)=>`<div class="well" data-w="${si}-${wi}"><span class="no">Well ${wi+1}</span>
-          <input class="wname" type="text" list="samplelist" data-slide="${si}" data-well="${wi}" value="${esc(w.name)}" placeholder="sample name" aria-label="Sample in well ${wi+1}">
-          <label class="wamt">Amount <input class="wamount" type="number" step="any" min="0" data-slide="${si}" data-well="${wi}" value="${esc(w.amount)}" aria-label="Absolute amount for well ${wi+1}"> A·µL</label>
+      <div class="slidescroll"><div class="slide">${sl.wells.map((w,wi)=>`<div class="well" data-w="${si}-${wi}" data-slide="${si}" data-well="${wi}">
+          <div class="head" draggable="true" title="Drag to move this well's sample"><span class="co">${slideTag(si)}${coord(wi)}</span><span class="no">well ${wi+1}</span><button type="button" class="x" data-x="${si}-${wi}" title="Empty this well" aria-label="Empty well ${coord(wi)}">×</button></div>
+          <input class="wname" type="text" list="samplelist" data-slide="${si}" data-well="${wi}" value="${esc(w.name)}" placeholder="sample name" aria-label="Sample in well ${coord(wi)}">
+          <label class="wamt">Amount <input class="wamount" type="number" step="any" min="0" data-slide="${si}" data-well="${wi}" value="${esc(w.amount)}" aria-label="Absolute amount for well ${coord(wi)}"> A·µL</label>
           <div class="out"></div></div>`).join('')}</div></div></div>`).join('');
   updateWells();
 }
@@ -237,39 +299,193 @@ function updateWells(){
   const plan=[];
   state.slides.forEach((sl,si)=>{
     let tot=0, nF=0; const lines=[sl.name];
-    sl.wells.forEach((w,wi)=>{
+    ORDER[state.order].forEach(wi=>{
+      const w=sl.wells[wi];
       const el=document.querySelector(`.well[data-w="${si}-${wi}"]`); if(!el) return;
       const s=sampleFor(w.name), amt=amountOf(w), vol= s&&s.mean>0? amt/s.mean : NaN;
       el.classList.toggle('filled',!!s); el.classList.toggle('over',!!s&&over(vol));
+      el.dataset.name=w.name;
       el.querySelector('.wamount').placeholder=fmt(state.target,2); el.querySelector('.wname').title=w.name;
       el.querySelector('.out').innerHTML = s? `<span class="v">${fmt(vol,2)} <small>µL</small></span><br><span class="m">mean A ${fmt(s.mean,3)}</span>`
         : (w.name.trim()? `<span class="m">${samples.length?'not found in the data':'waiting for data'}</span>` : '');
       if(s&&isFinite(vol)){ tot+=vol; nF++; }
-      lines.push(`Well ${wi+1}\t${w.name.trim()||'empty'}\t${w.name.trim()? fmt(amt,2)+' A·µL':''}\t${isFinite(vol)? fmt(vol,2)+' µL':''}`);
+      lines.push(`${coord(wi)}\t${w.name.trim()||'empty'}\t${w.name.trim()? fmt(amt,2)+' A·µL':''}\t${isFinite(vol)? fmt(vol,2)+' µL':''}`);
     });
     const sum=document.querySelector(`[data-sum="${si}"]`); if(sum) sum.textContent=`${nF} of 8 wells with data, ${fmt(tot,1)} µL in total`;
     plan.push(lines.join('\n'));
   });
   lastPlan=plan.join('\n\n');
 }
-function refresh(){ save(); renderTable(); updateWells(); }
+
+/* ---- sample chips: what is not on a slide yet ------------------------ */
+function placed(){ const set=new Set(); state.slides.forEach(sl=>sl.wells.forEach(w=>{ if(w.name.trim()) set.add(norm(w.name)); })); return set; }
+function renderChips(){
+  const usable=samples.filter(s=>!s.blank && isFinite(s.vol));
+  if(!usable.length){ $('chips').innerHTML=''; return; }
+  const p=placed(), todo=usable.filter(s=>!p.has(norm(s.name)));
+  $('chips').innerHTML = todo.length
+    ? `<span class="lbl">Not on a slide yet:</span>${todo.map(s=>`<button type="button" class="chip" draggable="true" data-name="${esc(s.name)}" title="Click: next free well · drag: any well">${esc(s.name)}</button>`).join('')}`
+    : `<span class="done">All ${usable.length} samples are on a slide.</span>`;
+}
+function nextFreeWell(){
+  for(let si=0;si<state.slides.length;si++) for(const wi of ORDER[state.order]) if(!state.slides[si].wells[wi].name.trim()) return [si,wi];
+  state.slides.push(emptySlide(state.slides.length+1));
+  return [state.slides.length-1, ORDER[state.order][0]];
+}
+function placeSample(name, si, wi){
+  const nSlides=state.slides.length;
+  if(si==null){ [si,wi]=nextFreeWell(); }
+  state.slides[si].wells[wi].name=name;
+  if(state.slides.length!==nSlides) render(); else { setWellInput(si,wi); refresh(); }
+}
+function setWellInput(si,wi){
+  const w=state.slides[si].wells[wi], el=document.querySelector(`.well[data-w="${si}-${wi}"]`); if(!el) return;
+  el.querySelector('.wname').value=w.name; el.querySelector('.wamount').value=w.amount;
+}
 
 function autofill(){
   const usable=samples.filter(s=>!s.blank && isFinite(s.vol));
-  const n=Math.max(1,Math.ceil(usable.length/8));
-  state.slides=Array.from({length:n},(_,i)=>({name: state.slides[i]?.name || `Slide ${i+1}`, wells:Array.from({length:8},(_,j)=>({name:usable[i*8+j]?.name||'', amount:state.slides[i]?.wells[j]?.amount||''}))}));
+  const n=Math.max(1,Math.ceil(usable.length/8)), ord=ORDER[state.order];
+  state.slides=Array.from({length:n},(_,i)=>{
+    const wells=Array.from({length:8},(_,j)=>({name:'', amount:state.slides[i]?.wells[j]?.amount||''}));
+    ord.forEach((wi,k)=>{ wells[wi].name=usable[i*8+k]?.name||''; });
+    return {name: state.slides[i]?.name || `Slide ${i+1}`, wells};
+  });
   render();
 }
 
 function emptySlide(n){ return {name:`Slide ${n}`, wells:Array.from({length:8},()=>({name:'',amount:''}))}; }
 function renderMasks(){ const names=Object.keys(state.masks||{}).sort(); $('maskList').innerHTML= names.length? names.map(n=>`<option>${esc(n)}</option>`).join('') : '<option value="">none yet</option>'; }
 
+/* ---- spectrum chart ------------------------------------------------- */
+const SVGW=680, SVGH=230, M={l:46,r:12,t:22,b:30};
+function niceStep(span, n){ const raw=span/n, p=Math.pow(10,Math.floor(Math.log10(raw))); return [1,2,5,10].map(k=>k*p).find(s=>s>=raw)||10*p; }
+function renderChart(){
+  const data=P.samples.filter(s=>!s.vals.every(v=>!isFinite(v)||v===0));
+  if(!P.n || !data.length){ $('chart').innerHTML='<p class="empty">Spectra appear here once an export is pasted.</p>'; CH=null; return; }
+  let y0=Infinity, y1=-Infinity;
+  data.forEach(s=>s.vals.forEach(v=>{ if(isFinite(v)){ if(v<y0) y0=v; if(v>y1) y1=v; } }));
+  y0=Math.min(0,y0); if(y1<=y0) y1=y0+1; y1+= (y1-y0)*0.05;
+  const x0=P.wlMin, x1=P.wlMax;
+  const X=w=>M.l+(w-x0)/(x1-x0||1)*(SVGW-M.l-M.r), Y=v=>SVGH-M.b-(v-y0)/(y1-y0)*(SVGH-M.t-M.b);
+  CH={x0,x1,y0,y1,X,Y};
+  const xs=niceStep(x1-x0,8), ys=niceStep(y1-y0,4);
+  let g='';
+  for(let v=Math.ceil(y0/ys)*ys; v<=y1; v+=ys){ g+=`<line class="ax" x1="${M.l}" x2="${SVGW-M.r}" y1="${Y(v)}" y2="${Y(v)}" opacity=".5"/><text x="${M.l-6}" y="${Y(v)+4}" text-anchor="end">${+v.toFixed(3)}</text>`; }
+  for(let w=Math.ceil(x0/xs)*xs; w<=x1; w+=xs){ g+=`<text x="${X(w)}" y="${SVGH-M.b+16}" text-anchor="middle">${w}</text>`; }
+  g+=`<line class="ax" x1="${M.l}" x2="${SVGW-M.r}" y1="${SVGH-M.b}" y2="${SVGH-M.b}"/><text x="${SVGW-M.r}" y="${SVGH-4}" text-anchor="end">nm</text><text x="6" y="${M.t-8}">A</text>`;
+  const paths=data.map(s=>{ let d=''; s.wl.forEach((w,i)=>{ const v=s.vals[i]; if(isFinite(v)) d+=(d?'L':'M')+X(w).toFixed(1)+' '+Y(v).toFixed(1); }); return `<path class="sp" data-name="${esc(s.name)}" d="${d}"/>`; }).join('');
+  $('chart').innerHTML=`<svg class="chart" viewBox="0 0 ${SVGW} ${SVGH}" role="img" aria-label="Absorbance spectra with the averaging range">
+    ${g}<rect class="band" id="band" data-drag="band" y="${M.t}" height="${SVGH-M.t-M.b}"/>
+    ${paths}
+    <line class="refl" id="refl" y1="${M.t}" y2="${SVGH-M.b}"/><text class="reflab" id="reflab" y="${M.t-8}" text-anchor="middle"></text>
+    <line class="edge" id="elo" y1="${M.t}" y2="${SVGH-M.b}"/><line class="edge" id="ehi" y1="${M.t}" y2="${SVGH-M.b}"/>
+    <rect class="grip" id="glo" data-drag="lo" width="14" y="${M.t}" height="${SVGH-M.t-M.b}"/><rect class="grip" id="ghi" data-drag="hi" width="14" y="${M.t}" height="${SVGH-M.t-M.b}"/>
+    <text class="rlab" id="rlab" y="${M.t-8}" text-anchor="middle"></text></svg><div class="tip" id="tip"></div>`;
+  updateChart();
+}
+function updateChart(){
+  if(!CH) return;
+  const lo=Math.max(CH.x0,Math.min(state.lo,state.hi)), hi=Math.min(CH.x1,Math.max(state.lo,state.hi));
+  const a=CH.X(lo), b=CH.X(hi), r=CH.X(Math.max(CH.x0,Math.min(CH.x1,state.ref)));
+  const set=(id,at)=>{ const el=$(id); if(el) for(const k in at) el.setAttribute(k,at[k]); };
+  set('band',{x:a,width:Math.max(1,b-a)}); set('elo',{x1:a,x2:a}); set('ehi',{x1:b,x2:b});
+  set('glo',{x:a-7}); set('ghi',{x:b-7}); set('refl',{x1:r,x2:r});
+  set('rlab',{x:(a+b)/2}); $('rlab').textContent=`${lo}–${hi} nm`;
+  set('reflab',{x:r}); $('reflab').textContent= Math.abs(r-(a+b)/2)<70? '' : `${state.ref} nm`;
+}
+function wlAt(e){
+  const rc=$('chart').querySelector('svg').getBoundingClientRect();
+  const sx=(e.clientX-rc.left)*SVGW/rc.width;
+  return CH.x0+(sx-M.l)/(SVGW-M.l-M.r)*(CH.x1-CH.x0);
+}
+let drag=null, rafPending=false;
+function scheduleRefresh(){ if(rafPending) return; rafPending=true; requestAnimationFrame(()=>{ rafPending=false; refresh(); }); }
+function chartPointerDown(e){
+  if(!CH || e.button>0) return;
+  const t=e.target.dataset.drag, w=wlAt(e);
+  if(t){ drag={t, w0:w, lo:Math.min(state.lo,state.hi), hi:Math.max(state.lo,state.hi)}; }
+  else{ // click elsewhere: move the single wavelength there
+    state.ref=Math.round(Math.max(CH.x0,Math.min(CH.x1,w))); $('ref').value=state.ref; drag={t:'ref'}; scheduleRefresh();
+  }
+  $('chart').setPointerCapture(e.pointerId); e.preventDefault();
+}
+function chartPointerMove(e){
+  if(!CH) return;
+  if(!drag){ hoverCurve(e); return; }
+  const w=wlAt(e), clamp=v=>Math.round(Math.max(CH.x0,Math.min(CH.x1,v)));
+  if(drag.t==='lo'){ state.lo=Math.min(clamp(w), Math.max(state.lo,state.hi)); state.hi=Math.max(state.lo,state.hi); }
+  else if(drag.t==='hi'){ const lo=Math.min(state.lo,state.hi); state.hi=Math.max(clamp(w),lo); state.lo=lo; }
+  else if(drag.t==='band'){ const width=drag.hi-drag.lo; let lo=Math.round(drag.lo+(w-drag.w0)); lo=Math.max(CH.x0,Math.min(CH.x1-width,lo)); state.lo=lo; state.hi=lo+width; }
+  else if(drag.t==='ref'){ state.ref=clamp(w); }
+  $('lo').value=state.lo; $('hi').value=state.hi; $('ref').value=state.ref;
+  scheduleRefresh();
+}
+function chartPointerUp(e){ if(drag){ drag=null; try{ $('chart').releasePointerCapture(e.pointerId); }catch(_){} } }
+/* nearest curve under the pointer, for highlight + tooltip */
+function hoverCurve(e){
+  const tip=$('tip'); if(!tip) return;
+  const w=wlAt(e); if(w<CH.x0||w>CH.x1){ tip.style.display='none'; return; }
+  const rc=$('chart').querySelector('svg').getBoundingClientRect();
+  const sy=(e.clientY-rc.top)*SVGH/rc.height;
+  let best=null;
+  P.samples.forEach(s=>{
+    let k=0, dk=Infinity; s.wl.forEach((x,i)=>{ const d=Math.abs(x-w); if(d<dk){dk=d;k=i;} });
+    const v=s.vals[k]; if(!isFinite(v)) return;
+    const d=Math.abs(CH.Y(v)-sy); if(!best||d<best.d) best={d,name:s.name,v,x:s.wl[k]};
+  });
+  if(best && best.d<14){
+    setHover(best.name);
+    const box=$('chart').getBoundingClientRect();
+    tip.style.display='block'; tip.textContent=`${best.name} · ${best.x} nm · A ${fmt(best.v,3)}`;
+    tip.style.left=Math.min(e.clientX-box.left+12, box.width-tip.offsetWidth-4)+'px'; tip.style.top=(e.clientY-box.top-30)+'px';
+  } else { tip.style.display='none'; setHover(''); }
+}
+
+/* ---- linked highlighting: chart curve <-> table row <-> wells <-> chip */
+function setHover(name){ if(norm(name)===norm(hoverName)) return; hoverName=name; applyHighlight(); }
+function applyHighlight(){
+  const n=norm(hoverName);
+  document.querySelectorAll('#table tr[data-name]').forEach(tr=>tr.classList.toggle('hl', !!n && norm(tr.dataset.name)===n));
+  document.querySelectorAll('.well[data-w]').forEach(el=>el.classList.toggle('hl', !!n && norm(el.dataset.name)===n));
+  document.querySelectorAll('.chip').forEach(el=>el.classList.toggle('hl', !!n && norm(el.dataset.name)===n));
+  const svg=$('chart').querySelector('svg');
+  if(svg){ let any=false; svg.querySelectorAll('.sp').forEach(p=>{ const on=!!n && norm(p.dataset.name)===n; p.classList.toggle('hl',on); if(on){ any=true; p.parentNode.appendChild(p); } }); svg.classList.toggle('dim',any);
+    ['refl','reflab','elo','ehi','glo','ghi','rlab'].forEach(id=>{ const el=$(id); if(el) svg.appendChild(el); }); }
+}
+
+/* ---- drag and drop onto wells ---------------------------------------- */
+function wellEl(t){ return t.closest && t.closest('.well[data-w]'); }
+function onDragStart(e){
+  const chip=e.target.closest('.chip'), tr=e.target.closest('tr[data-name]'), head=e.target.closest('.well .head');
+  let payload=null;
+  if(chip) payload='sample:'+chip.dataset.name;
+  else if(tr) payload='sample:'+tr.dataset.name;
+  else if(head){ const w=wellEl(head); payload='well:'+w.dataset.slide+'-'+w.dataset.well; }
+  if(!payload) return;
+  e.dataTransfer.setData('text/plain', payload); e.dataTransfer.effectAllowed='copyMove';
+}
+function onDragOver(e){ const w=wellEl(e.target); if(!w) return; e.preventDefault(); document.querySelectorAll('.well.drop').forEach(x=>x!==w&&x.classList.remove('drop')); w.classList.add('drop'); }
+function onDragLeave(e){ const w=wellEl(e.target); if(w && !w.contains(e.relatedTarget)) w.classList.remove('drop'); }
+function onDrop(e){
+  const w=wellEl(e.target); if(!w) return; e.preventDefault(); w.classList.remove('drop');
+  const data=e.dataTransfer.getData('text/plain')||''; const si=+w.dataset.slide, wi=+w.dataset.well;
+  if(data.startsWith('sample:')){ placeSample(data.slice(7), si, wi); }
+  else if(data.startsWith('well:')){
+    const [s0,w0]=data.slice(5).split('-').map(Number); if(s0===si&&w0===wi) return;
+    const a=state.slides[s0].wells[w0], b=state.slides[si].wells[wi];
+    state.slides[s0].wells[w0]={...b}; state.slides[si].wells[wi]={...a};
+    setWellInput(s0,w0); setWellInput(si,wi); refresh();
+  }
+}
+document.addEventListener('dragend',()=>document.querySelectorAll('.well.drop').forEach(x=>x.classList.remove('drop')));
+
 function load(){
   try{ const s=JSON.parse(localStorage.getItem(KEY)||'null'); if(s) Object.assign(state,s); }catch(e){}
-  state.masks=state.masks||{};
+  state.masks=state.masks||{}; if(!ORDER[state.order]) state.order='col';
   state.slides=(state.slides||[]).map(sl=>({name:sl.name, wells:sl.wells.map(w=>typeof w==='string'?{name:w,amount:''}:{name:w.name||'',amount:w.amount??''})}));
   if(!state.slides.length) state.slides=[emptySlide(1)];
-  $('raw').value=state.raw; for(const k of ['target','lo','hi','ref','maxv']) $(k).value=state[k];
+  $('raw').value=state.raw; for(const k of ['target','lo','hi','ref','maxv']) $(k).value=state[k]; $('order').value=state.order;
 }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 
@@ -282,8 +498,9 @@ async function copyText(txt, btn){
 function init(){
   load();
   let t; $('raw').addEventListener('input',()=>{ clearTimeout(t); t=setTimeout(()=>{ state.raw=$('raw').value; render(); },250); });
-  for(const k of ['target','lo','hi','ref']) $(k).addEventListener('input',e=>{ const v=parseFloat(e.target.value); if(isFinite(v)){ state[k]=v; render(); } });
-  $('maxv').addEventListener('input',e=>{ state.maxv=e.target.value; render(); });
+  for(const k of ['target','lo','hi','ref']) $(k).addEventListener('input',e=>{ const v=parseFloat(e.target.value); if(isFinite(v)){ state[k]=v; refresh(); } });
+  $('maxv').addEventListener('input',e=>{ state.maxv=e.target.value; refresh(); });
+  $('order').addEventListener('change',e=>{ state.order=e.target.value; refresh(); });
   $('clear').addEventListener('click',()=>{ $('raw').value=''; state.raw=''; render(); $('raw').focus(); });
   $('autofill').addEventListener('click',autofill);
   $('addSlide').addEventListener('click',()=>{ state.slides.push(emptySlide(state.slides.length+1)); render(); });
@@ -291,9 +508,26 @@ function init(){
     if(el.matches('.slidename')){ state.slides[si].name=el.value; save(); updateWells(); }
     else if(el.matches('.wname')){ state.slides[si].wells[wi].name=el.value; refresh(); }
     else if(el.matches('.wamount')){ state.slides[si].wells[wi].amount=el.value; refresh(); } });
+  $('slides').addEventListener('keydown',e=>{ // Enter: next well in fill order
+    if(e.key!=='Enter' || !e.target.matches('.wname')) return; e.preventDefault();
+    const si=+e.target.dataset.slide, wi=+e.target.dataset.well, ord=ORDER[state.order], k=ord.indexOf(wi);
+    const [ns,nw]= k<7? [si,ord[k+1]] : [si+1,ord[0]];
+    const next=document.querySelector(`.wname[data-slide="${ns}"][data-well="${nw}"]`); if(next){ next.focus(); next.select(); } });
   $('slides').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return;
+    if(b.dataset.x!=null){ const [si,wi]=b.dataset.x.split('-').map(Number); state.slides[si].wells[wi]={name:'',amount:''}; setWellInput(si,wi); refresh(); return; }
     if(b.dataset.clear!=null){ state.slides[+b.dataset.clear].wells.forEach(w=>{w.name='';w.amount='';}); render(); }
     if(b.dataset.remove!=null){ state.slides.splice(+b.dataset.remove,1); render(); } });
+  $('chips').addEventListener('click',e=>{ const c=e.target.closest('.chip'); if(c) placeSample(c.dataset.name); });
+  for(const el of [document.body]){ el.addEventListener('dragstart',onDragStart); }
+  $('slides').addEventListener('dragover',onDragOver); $('slides').addEventListener('dragleave',onDragLeave); $('slides').addEventListener('drop',onDrop);
+  // highlighting from table rows, wells and chips
+  for(const [id,sel,attr] of [['table','tr[data-name]','name'],['slides','.well[data-w]','name'],['chips','.chip','name']]){
+    $(id).addEventListener('mouseover',e=>{ const el=e.target.closest(sel); setHover(el? el.dataset[attr]||'' : ''); });
+    $(id).addEventListener('mouseleave',()=>setHover(''));
+  }
+  $('chart').addEventListener('pointerdown',chartPointerDown); $('chart').addEventListener('pointermove',chartPointerMove);
+  $('chart').addEventListener('pointerup',chartPointerUp); $('chart').addEventListener('pointercancel',chartPointerUp);
+  $('chart').addEventListener('pointerleave',()=>{ if(!drag){ const tip=$('tip'); if(tip) tip.style.display='none'; setHover(''); } });
   $('maskSave').addEventListener('click',()=>{ const n=$('maskName').value.trim()||`Mask ${Object.keys(state.masks).length+1}`; state.masks[n]=JSON.parse(JSON.stringify(state.slides)); $('maskName').value=''; render(); $('maskList').value=n; });
   $('maskLoad').addEventListener('click',()=>{ const n=$('maskList').value; if(!state.masks[n]) return; state.slides=JSON.parse(JSON.stringify(state.masks[n])); render(); $('maskList').value=n; });
   $('maskDelete').addEventListener('click',()=>{ const n=$('maskList').value; if(!state.masks[n]) return; delete state.masks[n]; render(); });
@@ -302,7 +536,7 @@ function init(){
   if(isLocal){
     $('saveCsv').hidden=false; $('print').hidden=false;
     $('saveCsv').addEventListener('click',()=>{ const csv=lastTsv.split('\n').map(l=>l.split('\t').map(c=>/[;"]/.test(c)?`"${c.replace(/"/g,'""')}"`:c).join(';')).join('\n');
-      const u=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'})); const a=document.createElement('a'); a.href=u; a.download='nanodrop-volumes.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),2000); });
+      const u=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv'})); const a=document.createElement('a'); a.href=u; a.download='nanodrop-volumes.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),2000); });
     $('print').addEventListener('click',()=>window.print());
   }
   render();
