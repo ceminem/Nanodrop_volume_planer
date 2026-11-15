@@ -134,6 +134,19 @@ tr.hl td{background:var(--accent-soft)}
 .order{font-size:14px;color:var(--muted)}
 .order select{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:5px 8px}
 .note{color:var(--muted);font-size:13px;margin:10px 0 0}
+.lipids{margin-top:18px}
+.lrow{border:1px solid var(--rule);border-radius:4px;padding:8px;margin-top:8px;background:var(--bg)}
+.lrow .top{display:grid;grid-template-columns:minmax(0,1fr) 5.5em auto auto;gap:6px;align-items:center}
+.lrow .sub{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px;align-items:center;margin-top:6px;font-size:12.5px;color:var(--muted)}
+.lipids input{width:100%;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:4px 6px;min-width:0}
+.lipids input.lname{font-weight:600}
+.lipids input.amt{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;border-color:var(--accent)}
+.lipids .unit{font-size:12.5px;color:var(--muted)}
+.lipids .del{border:0;background:transparent;color:var(--muted);font-size:16px;padding:0 4px}
+.lipids .del:hover{color:var(--bad)}
+.lipids .cnt{color:var(--muted);font-size:12px;white-space:nowrap}
+td select.lip{font:inherit;font-size:13px;color:var(--ink);background:transparent;border:1px solid var(--rule);border-radius:4px;padding:2px 4px;max-width:12em}
+.well .lipname{font-size:11.5px;color:var(--accent);font-weight:500}
 @media print{
   .masks,.chips,#chartPanel{display:none!important} .well input{border:0} .well .x{display:none}
   body{background:#fff} .noprint,.grid>section:first-child{display:none!important}
@@ -156,13 +169,19 @@ tr.hl td{background:var(--accent-soft)}
       <div class="row" style="margin-top:10px"><button type="button" id="clear">Clear</button></div>
 
       <div class="fields">
-        <div class="field key wide"><label for="target">Target absolute amount (A·µL)</label><input id="target" type="number" step="any" min="0"></div>
+        <div class="field key wide"><label for="target">Default absolute amount (A·µL)</label><input id="target" type="number" step="any" min="0"></div>
         <div class="field"><label for="lo">Range from (nm)</label><input id="lo" type="number" step="1"></div>
         <div class="field"><label for="hi">Range to (nm)</label><input id="hi" type="number" step="1"></div>
         <div class="field"><label for="ref">Single wavelength (nm)</label><input id="ref" type="number" step="1"></div>
         <div class="field"><label for="maxv">Flag volumes above (µL)</label><input id="maxv" type="number" step="any" min="0" placeholder="optional"></div>
       </div>
-      <p class="formula">Volume (µL) = <b>target amount</b> ÷ <b>mean A</b> over the range, both ends included.</p>
+      <p class="formula">Volume (µL) = <b>absolute amount</b> ÷ <b>mean A</b> over the range, both ends included.</p>
+
+      <div class="lipids">
+        <div class="tblhead" style="margin-bottom:4px"><span class="lab" style="margin:0">Absolute amount per lipid</span><button type="button" id="addLipid">Add lipid</button></div>
+        <div id="lipidRows"></div>
+        <p class="hint">Each sample gets the amount of the lipid whose keyword appears in its name - the <b>longest</b> match wins, so “DOPC/DOTAP 2” is DOPC/DOTAP, not DOPC. Several keywords: separate with commas. Change a single sample in the table’s Lipid column. Samples without a lipid use the default amount; an amount typed into a well overrides both.</p>
+      </div>
     </div>
   </section>
 
@@ -198,7 +217,11 @@ const $=id=>document.getElementById(id);
 const KEY='nanodrop-volume-planner.v1';
 const isLocal = location.protocol==='file:' || ['localhost','127.0.0.1','::1'].includes(location.hostname);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const state={raw:'', target:13, lo:250, hi:300, ref:200, maxv:'', order:'col', slides:[], masks:{}};
+const DEFAULT_LIPIDS=[{name:'DOPC', amount:14, match:'DOPC'},
+                      {name:'DOPC/DOTAP', amount:12, match:'DOPC/DOTAP'},
+                      {name:'vac lipid', amount:12, match:'vac'}];
+const state={raw:'', target:13, lo:250, hi:300, ref:200, maxv:'', order:'col', slides:[], masks:{},
+             lipids:JSON.parse(JSON.stringify(DEFAULT_LIPIDS)), lipidOf:{}};
 let samples=[], lastTsv='', lastPlan='', P={samples:[]}, CH=null, hoverName='';
 
 /* ---- well coordinates ------------------------------------------------
@@ -232,6 +255,27 @@ function parse(text){
   return {samples:names.map((name,j)=>({name, wl, vals:cols[j]})), wlMin:Math.min(...wl), wlMax:Math.max(...wl), n:wl.length};
 }
 
+/* ---- lipids: which absolute amount a sample gets ----------------------
+   Priority: amount typed into a well  >  the sample's lipid  >  default.
+   A sample's lipid is chosen in the table (state.lipidOf), otherwise found
+   automatically: the lipid with the LONGEST keyword contained in the sample
+   name, so "DOPC/DOTAP 1" matches DOPC/DOTAP and not DOPC. */
+const norm=x=>String(x||'').trim().replace(/\s+/g,' ').toLowerCase();
+function keywords(l){ return String(l.match||l.name||'').split(',').map(norm).filter(Boolean); }
+function autoLipid(name){
+  const n=norm(name); let best=null, len=0;
+  state.lipids.forEach(l=>keywords(l).forEach(k=>{ if(n.includes(k) && k.length>len){ best=l; len=k.length; } }));
+  return best;
+}
+function lipidFor(name){
+  const o=state.lipidOf[norm(name)];
+  if(o==='-') return null;
+  if(o){ const l=state.lipids.find(l=>l.name===o); if(l) return l; }
+  return autoLipid(name);
+}
+const validAmt=v=>v!==''&&v!=null&&isFinite(+v)&&+v>0;
+function sampleAmount(name){ const l=lipidFor(name); return l&&validAmt(l.amount)? +l.amount : state.target; }
+
 function analyse(){
   const p=parse(state.raw); P=p; const warn=[];
   if(p.error) warn.push(p.error);
@@ -242,8 +286,9 @@ function analyse(){
     s.wl.forEach((w,i)=>{ const v=s.vals[i]; if(!isFinite(v)) return; if(w>=lo&&w<=hi) inR.push(v); const d=Math.abs(w-state.ref); if(d<refD){refD=d; ref=v;} });
     const mean=inR.length? inR.reduce((a,b)=>a+b,0)/inR.length : NaN;
     const blank = s.vals.every(v=>!isFinite(v)||v===0);
-    const vol = (!blank && mean>0)? state.target/mean : NaN;
-    return {name:s.name, ref: refD<=0.5? ref : NaN, mean, n:inR.length, blank, vol};
+    const lip=lipidFor(s.name), amount=sampleAmount(s.name);
+    const vol = (!blank && mean>0)? amount/mean : NaN;
+    return {name:s.name, ref: refD<=0.5? ref : NaN, mean, n:inR.length, blank, vol, amount, lipid: lip? lip.name : ''};
   });
   const neg=samples.filter(s=>!s.blank && !(s.mean>0)).map(s=>s.name);
   if(neg.length) warn.push(`${neg.join(', ')}: mean absorbance in the range is zero or negative, so no volume can be calculated.`);
@@ -254,31 +299,40 @@ function analyse(){
 function render(){
   save();
   setWarn(analyse());
-  renderTable(); renderSlides(); renderChips(); renderMasks(); renderChart();
+  renderTable(); renderSlides(); renderChips(); renderMasks(); renderChart(); renderLipids();
   applyHighlight();
 }
 /* light update (well contents or range changed): keeps inputs and focus */
 function refresh(){
   save();
   setWarn(analyse());
-  renderTable(); updateWells(); renderChips(); updateChart();
+  renderTable(); updateWells(); renderChips(); updateChart(); updateLipidCounts();
   applyHighlight();
 }
 function setWarn(warn){ $('warn').innerHTML = warn.length? `<ul>${warn.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>` : ''; }
 
-const norm=x=>String(x||'').trim().replace(/\s+/g,' ').toLowerCase();
 function sampleFor(name){ const n=norm(name); return n? samples.find(s=>!s.blank && norm(s.name)===n) : null; }
-function amountOf(w){ return (w.amount!==''&&w.amount!=null&&isFinite(+w.amount))? +w.amount : state.target; }
+function amountOf(w){ return (w.amount!==''&&w.amount!=null&&isFinite(+w.amount))? +w.amount : sampleAmount(w.name); }
 function wellsOf(name){ const out=[]; state.slides.forEach((s,i)=>s.wells.forEach((w,j)=>{ if(norm(w.name)===norm(name)) out.push(slideTag(i)+coord(j)); })); return out; }
 const over=v=> state.maxv!=='' && isFinite(+state.maxv) && v>+state.maxv;
 
 function renderTable(){
   if(!samples.length){ $('table').innerHTML='<p class="empty">Paste a NanoDrop export to start.</p>'; lastTsv=''; return; }
   const lo=Math.min(state.lo,state.hi), hi=Math.max(state.lo,state.hi);
-  const head=['Sample',`A ${state.ref} nm`,`Mean A ${lo}–${hi} nm`,'Target amount (A·µL)','Volume for target (µL)','Well'];
-  const rows=samples.map(s=>[s.name, fmt(s.ref,3), s.blank?'–':fmt(s.mean,3), s.blank?'–':fmt(state.target,2), s.blank?'–':fmt(s.vol,2), wellsOf(s.name).join(', ')]);
-  $('table').innerHTML=`<table><thead><tr>${head.map((h,i)=>`<th class="${i&&i<5?'n':''}">${esc(h)}</th>`).join('')}</tr></thead><tbody>${
-    samples.map((s,i)=>`<tr class="${s.blank?'blank':''}" data-name="${esc(s.name)}"${s.blank?'':' draggable="true" title="Drag onto a well"'}>${rows[i].map((c,j)=>`<td class="${j&&j<5?'n':''}${j===4?' vol':''}${j===4&&over(s.vol)?' bad':''}">${esc(c)}${j===0&&s.blank?'<span class="tag">blank</span>':''}</td>`).join('')}</tr>`).join('')
+  const head=['Sample','Lipid',`A ${state.ref} nm`,`Mean A ${lo}–${hi} nm`,'Amount (A·µL)','Volume (µL)','Well'];
+  const rows=samples.map(s=>[s.name, s.blank?'':(s.lipid||'default'), fmt(s.ref,3), s.blank?'–':fmt(s.mean,3), s.blank?'–':fmt(s.amount,2), s.blank?'–':fmt(s.vol,2), wellsOf(s.name).join(', ')]);
+  const lipCell=s=>{
+    if(s.blank) return '';
+    const o=state.lipidOf[norm(s.name)]||'', auto=autoLipid(s.name);
+    const opts=[`<option value=""${o===''?' selected':''}>auto: ${esc(auto? auto.name : 'default')}</option>`,
+                ...state.lipids.filter(l=>l.name).map(l=>`<option value="${esc(l.name)}"${o===l.name?' selected':''}>${esc(l.name)}</option>`),
+                `<option value="-"${o==='-'?' selected':''}>none (default amount)</option>`];
+    return `<select class="lip" data-lip="${esc(s.name)}" aria-label="Lipid of ${esc(s.name)}">${opts.join('')}</select>`;
+  };
+  $('table').innerHTML=`<table><thead><tr>${head.map((h,i)=>`<th class="${i>1&&i<6?'n':''}">${esc(h)}</th>`).join('')}</tr></thead><tbody>${
+    samples.map((s,i)=>`<tr class="${s.blank?'blank':''}" data-name="${esc(s.name)}"${s.blank?'':' draggable="true" title="Drag onto a well"'}>${rows[i].map((c,j)=>
+      j===1? `<td>${lipCell(s)}</td>` :
+      `<td class="${j>1&&j<6?'n':''}${j===5?' vol':''}${j===5&&over(s.vol)?' bad':''}">${esc(c)}${j===0&&s.blank?'<span class="tag">blank</span>':''}</td>`).join('')}</tr>`).join('')
   }</tbody></table><p class="note">Mean over ${samples[0]?.n||0} wavelength points per sample.</p>`;
   lastTsv=[head.join('\t'),...rows.map(r=>r.join('\t'))].join('\n');
 }
@@ -305,11 +359,12 @@ function updateWells(){
       const s=sampleFor(w.name), amt=amountOf(w), vol= s&&s.mean>0? amt/s.mean : NaN;
       el.classList.toggle('filled',!!s); el.classList.toggle('over',!!s&&over(vol));
       el.dataset.name=w.name;
-      el.querySelector('.wamount').placeholder=fmt(state.target,2); el.querySelector('.wname').title=w.name;
-      el.querySelector('.out').innerHTML = s? `<span class="v">${fmt(vol,2)} <small>µL</small></span><br><span class="m">mean A ${fmt(s.mean,3)}</span>`
+      el.querySelector('.wamount').placeholder=fmt(sampleAmount(w.name),2); el.querySelector('.wname').title=w.name;
+      const lip=lipidFor(w.name);
+      el.querySelector('.out').innerHTML = s? `<span class="v">${fmt(vol,2)} <small>µL</small></span><br><span class="m">mean A ${fmt(s.mean,3)}</span>${lip?` · <span class="lipname">${esc(lip.name)}</span>`:''}`
         : (w.name.trim()? `<span class="m">${samples.length?'not found in the data':'waiting for data'}</span>` : '');
       if(s&&isFinite(vol)){ tot+=vol; nF++; }
-      lines.push(`${coord(wi)}\t${w.name.trim()||'empty'}\t${w.name.trim()? fmt(amt,2)+' A·µL':''}\t${isFinite(vol)? fmt(vol,2)+' µL':''}`);
+      lines.push(`${coord(wi)}\t${w.name.trim()||'empty'}\t${w.name.trim()? (lip? lip.name : 'default') : ''}\t${w.name.trim()? fmt(amt,2)+' A·µL':''}\t${isFinite(vol)? fmt(vol,2)+' µL':''}`);
     });
     const sum=document.querySelector(`[data-sum="${si}"]`); if(sum) sum.textContent=`${nF} of 8 wells with data, ${fmt(tot,1)} µL in total`;
     plan.push(lines.join('\n'));
@@ -352,6 +407,21 @@ function autofill(){
     return {name: state.slides[i]?.name || `Slide ${i+1}`, wells};
   });
   render();
+}
+
+function renderLipids(){
+  const counts={}; samples.filter(s=>!s.blank).forEach(s=>{ const l=lipidFor(s.name); const k=l? l.name : ''; counts[k]=(counts[k]||0)+1; });
+  $('lipidRows').innerHTML=state.lipids.map((l,i)=>`<div class="lrow">
+    <div class="top"><input class="lname" type="text" data-li="${i}" data-k="name" value="${esc(l.name)}" placeholder="lipid name" aria-label="Lipid name">
+      <input class="amt" type="number" step="any" min="0" data-li="${i}" data-k="amount" value="${esc(l.amount)}" aria-label="Absolute amount for ${esc(l.name)}">
+      <span class="unit">A·µL</span>
+      <button type="button" class="del" data-del="${i}" title="Remove this lipid" aria-label="Remove ${esc(l.name)}">×</button></div>
+    <div class="sub"><span>matches names containing</span><input type="text" data-li="${i}" data-k="match" value="${esc(l.match)}" placeholder="${esc(l.name)||'keyword'}" aria-label="Keywords for ${esc(l.name)}">
+      <span class="cnt" data-cnt="${i}">${samples.length? (counts[l.name]||0)+' samples' : ''}</span></div></div>`).join('');
+}
+function updateLipidCounts(){
+  const counts={}; samples.filter(s=>!s.blank).forEach(s=>{ const l=lipidFor(s.name); if(l) counts[l.name]=(counts[l.name]||0)+1; });
+  state.lipids.forEach((l,i)=>{ const c=document.querySelector(`[data-cnt="${i}"]`); if(c) c.textContent= samples.length? (counts[l.name]||0)+' samples' : ''; });
 }
 
 function emptySlide(n){ return {name:`Slide ${n}`, wells:Array.from({length:8},()=>({name:'',amount:''}))}; }
@@ -483,6 +553,8 @@ document.addEventListener('dragend',()=>document.querySelectorAll('.well.drop').
 function load(){
   try{ const s=JSON.parse(localStorage.getItem(KEY)||'null'); if(s) Object.assign(state,s); }catch(e){}
   state.masks=state.masks||{}; if(!ORDER[state.order]) state.order='col';
+  if(!Array.isArray(state.lipids)) state.lipids=JSON.parse(JSON.stringify(DEFAULT_LIPIDS));
+  state.lipidOf=state.lipidOf||{};
   state.slides=(state.slides||[]).map(sl=>({name:sl.name, wells:sl.wells.map(w=>typeof w==='string'?{name:w,amount:''}:{name:w.name||'',amount:w.amount??''})}));
   if(!state.slides.length) state.slides=[emptySlide(1)];
   $('raw').value=state.raw; for(const k of ['target','lo','hi','ref','maxv']) $(k).value=state[k]; $('order').value=state.order;
@@ -517,6 +589,17 @@ function init(){
     if(b.dataset.x!=null){ const [si,wi]=b.dataset.x.split('-').map(Number); state.slides[si].wells[wi]={name:'',amount:''}; setWellInput(si,wi); refresh(); return; }
     if(b.dataset.clear!=null){ state.slides[+b.dataset.clear].wells.forEach(w=>{w.name='';w.amount='';}); render(); }
     if(b.dataset.remove!=null){ state.slides.splice(+b.dataset.remove,1); render(); } });
+  $('lipidRows').addEventListener('input',e=>{ const el=e.target, i=+el.dataset.li, k=el.dataset.k; if(!state.lipids[i]||!k) return;
+    const old=state.lipids[i].name; state.lipids[i][k]= k==='amount'? el.value : el.value;
+    if(k==='name') for(const s in state.lipidOf) if(state.lipidOf[s]===old) state.lipidOf[s]=el.value;
+    refresh(); });
+  $('lipidRows').addEventListener('click',e=>{ const b=e.target.closest('[data-del]'); if(!b) return;
+    const gone=state.lipids.splice(+b.dataset.del,1)[0]; for(const s in state.lipidOf) if(state.lipidOf[s]===gone.name) delete state.lipidOf[s]; render(); });
+  $('addLipid').addEventListener('click',()=>{ state.lipids.push({name:'',amount:'',match:''}); render();
+    const inp=document.querySelector(`#lipidRows input[data-li="${state.lipids.length-1}"][data-k="name"]`); if(inp) inp.focus(); });
+  $('table').addEventListener('change',e=>{ const sel=e.target.closest('select.lip'); if(!sel) return;
+    const k=norm(sel.dataset.lip); if(sel.value) state.lipidOf[k]=sel.value; else delete state.lipidOf[k]; refresh(); });
+  $('table').addEventListener('mousedown',e=>{ if(e.target.closest('select')) e.stopPropagation(); });
   $('chips').addEventListener('click',e=>{ const c=e.target.closest('.chip'); if(c) placeSample(c.dataset.name); });
   for(const el of [document.body]){ el.addEventListener('dragstart',onDragStart); }
   $('slides').addEventListener('dragover',onDragOver); $('slides').addEventListener('dragleave',onDragLeave); $('slides').addEventListener('drop',onDrop);
