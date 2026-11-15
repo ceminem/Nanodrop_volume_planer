@@ -147,10 +147,14 @@ tr.hl td{background:var(--accent-soft)}
 .lipids .cnt{color:var(--muted);font-size:12px;white-space:nowrap}
 td select.lip{font:inherit;font-size:13px;color:var(--ink);background:transparent;border:1px solid var(--rule);border-radius:4px;padding:2px 4px;max-width:12em}
 .well .lipname{font-size:11.5px;color:var(--accent);font-weight:500}
+#sheet{display:none}
+.titlebar{display:flex;gap:8px;align-items:center;margin:0 0 10px;font-size:14px}
+.titlebar .lbl{color:var(--muted)}
+.titlebar input{flex:1 1 200px;font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:5px 8px;min-width:0}
+@page{margin:12mm}
 @media print{
-  .masks,.chips,#chartPanel{display:none!important} .well input{border:0} .well .x{display:none}
-  body{background:#fff} .noprint,.grid>section:first-child{display:none!important}
-  .grid{display:block} .panel{border:0;padding:0} .slidecard{break-inside:avoid}
+  html,body{background:#fff!important;color:#000} .wrap{display:none!important}
+  #sheet{display:block;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 </style>
 </head>
@@ -201,7 +205,8 @@ td select.lip{font:inherit;font-size:13px;color:var(--ink);background:transparen
         <div class="row noprint"><label class="order">Fill order <select id="order" aria-label="Fill order">
             <option value="col">by column: A1, A2, B1, B2 …</option>
             <option value="row">by row: A1, B1, C1, D1 …</option></select></label>
-          <button type="button" class="primary" id="autofill">Fill slides in sample order</button><button type="button" id="addSlide">Add slide</button><button type="button" id="copyPlan">Copy plan</button><button type="button" id="print" hidden>Print layout</button></div></div>
+          <button type="button" class="primary" id="autofill">Fill slides in sample order</button><button type="button" id="addSlide">Add slide</button><button type="button" id="copyPlan">Copy plan</button><button type="button" id="print" hidden>Print plan</button></div></div>
+      <div class="titlebar noprint"><label class="lbl" for="planTitle">Title on print / copy</label><input id="planTitle" type="text" placeholder="e.g. Calcein release 15.11. – plate 1"></div>
       <p class="hint noprint" style="margin:0 0 12px">Drag a sample (chip below or table row) onto a well, or click a chip to put it in the next free well. Drag a well by its coordinate to move it — dropping on a filled well swaps the two. Names are matched to the NanoDrop data (case and extra spaces don’t matter), so you can set up the mask before measuring. Leave a well’s amount empty to use the target amount. Enter jumps to the next well.</p>
       <div class="masks noprint"><span class="lbl">Saved masks</span><select id="maskList" aria-label="Saved masks"></select><button type="button" id="maskLoad">Load</button><button type="button" id="maskDelete">Delete</button>
         <input id="maskName" type="text" placeholder="Name for this mask" aria-label="Mask name"><button type="button" id="maskSave">Save mask</button></div>
@@ -212,6 +217,7 @@ td select.lip{font:inherit;font-size:13px;color:var(--ink);background:transparen
   </section>
 </main>
 </div>
+<div id="sheet" aria-hidden="true"></div>
 <script>
 const $=id=>document.getElementById(id);
 const KEY='nanodrop-volume-planner.v1';
@@ -221,8 +227,8 @@ const DEFAULT_LIPIDS=[{name:'DOPC', amount:14, match:'DOPC'},
                       {name:'DOPC/DOTAP', amount:12, match:'DOPC/DOTAP'},
                       {name:'vac lipid', amount:12, match:'vac'}];
 const state={raw:'', target:13, lo:250, hi:300, ref:200, maxv:'', order:'col', slides:[], masks:{},
-             lipids:JSON.parse(JSON.stringify(DEFAULT_LIPIDS)), lipidOf:{}};
-let samples=[], lastTsv='', lastPlan='', P={samples:[]}, CH=null, hoverName='';
+             lipids:JSON.parse(JSON.stringify(DEFAULT_LIPIDS)), lipidOf:{}, title:''};
+let samples=[], lastTsv='', P={samples:[]}, CH=null, hoverName='';
 
 /* ---- well coordinates ------------------------------------------------
    The ibidi µ-Slide 8 Well is 2 rows x 4 columns. Columns are lettered A-D
@@ -349,28 +355,112 @@ function renderSlides(){
           <div class="out"></div></div>`).join('')}</div></div></div>`).join('');
   updateWells();
 }
-function updateWells(){
-  const plan=[];
-  state.slides.forEach((sl,si)=>{
-    let tot=0, nF=0; const lines=[sl.name];
-    ORDER[state.order].forEach(wi=>{
-      const w=sl.wells[wi];
-      const el=document.querySelector(`.well[data-w="${si}-${wi}"]`); if(!el) return;
-      const s=sampleFor(w.name), amt=amountOf(w), vol= s&&s.mean>0? amt/s.mean : NaN;
-      el.classList.toggle('filled',!!s); el.classList.toggle('over',!!s&&over(vol));
-      el.dataset.name=w.name;
-      el.querySelector('.wamount').placeholder=fmt(sampleAmount(w.name),2); el.querySelector('.wname').title=w.name;
-      const lip=lipidFor(w.name);
-      el.querySelector('.out').innerHTML = s? `<span class="v">${fmt(vol,2)} <small>µL</small></span><br><span class="m">mean A ${fmt(s.mean,3)}</span>${lip?` · <span class="lipname">${esc(lip.name)}</span>`:''}`
-        : (w.name.trim()? `<span class="m">${samples.length?'not found in the data':'waiting for data'}</span>` : '');
-      if(s&&isFinite(vol)){ tot+=vol; nF++; }
-      lines.push(`${coord(wi)}\t${w.name.trim()||'empty'}\t${w.name.trim()? (lip? lip.name : 'default') : ''}\t${w.name.trim()? fmt(amt,2)+' A·µL':''}\t${isFinite(vol)? fmt(vol,2)+' µL':''}`);
+/* everything known about every well, in slide order; used by the wells,
+   "Copy plan" and the printed sheet */
+function planData(){
+  return state.slides.map((sl,si)=>{
+    const wells=sl.wells.map((w,wi)=>{
+      const name=w.name.trim(), s=sampleFor(w.name), lip=lipidFor(w.name), amt=amountOf(w);
+      const vol= s&&s.mean>0? amt/s.mean : NaN;
+      return {wi, co:coord(wi), name, found:!!s, lipid: name? (lip? lip.name : 'default') : '', lipObj:lip,
+              amt, mean: s? s.mean : NaN, ref: s? s.ref : NaN, vol, over: !!s&&over(vol),
+              status: !name? 'empty' : s? '' : (samples.length? 'not found in the data' : 'waiting for data')};
     });
-    const sum=document.querySelector(`[data-sum="${si}"]`); if(sum) sum.textContent=`${nF} of 8 wells with data, ${fmt(tot,1)} µL in total`;
-    plan.push(lines.join('\n'));
+    const used=wells.filter(w=>isFinite(w.vol));
+    return {si, name: sl.name||`Slide ${si+1}`, wells, order: ORDER[state.order].map(i=>wells[i]),
+            total: used.reduce((a,w)=>a+w.vol,0), nF: used.length};
   });
-  lastPlan=plan.join('\n\n');
 }
+function updateWells(){
+  planData().forEach(sl=>{
+    sl.wells.forEach(w=>{
+      const el=document.querySelector(`.well[data-w="${sl.si}-${w.wi}"]`); if(!el) return;
+      const raw=state.slides[sl.si].wells[w.wi].name;
+      el.classList.toggle('filled',w.found); el.classList.toggle('over',w.over);
+      el.dataset.name=raw;
+      el.querySelector('.wamount').placeholder=fmt(sampleAmount(raw),2); el.querySelector('.wname').title=raw;
+      el.querySelector('.out').innerHTML = w.found? `<span class="v">${fmt(w.vol,2)} <small>µL</small></span><br><span class="m">mean A ${fmt(w.mean,3)}</span>${w.lipObj?` · <span class="lipname">${esc(w.lipObj.name)}</span>`:''}`
+        : (w.name? `<span class="m">${w.status}</span>` : '');
+    });
+    const sum=document.querySelector(`[data-sum="${sl.si}"]`); if(sum) sum.textContent=`${sl.nF} of 8 wells with data, ${fmt(sl.total,1)} µL in total`;
+  });
+}
+
+/* ---- the plan sheet: printed page and rich clipboard copy -------------
+   Built with inline styles and real tables so it looks the same when pasted
+   into Word, OneNote, Outlook or Excel. */
+const SC={ink:'#1A242C', muted:'#5A6873', rule:'#C9D3DA', accent:'#9A4E14', well:'#1E4E78', slide:'#E3EBF0', edge:'#9FB3C0', fill:'#F3F7FA', bad:'#B42318'};
+const FONT='font-family:\'IBM Plex Sans\',Calibri,Arial,sans-serif;';
+function today(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function settingsLine(){
+  const lo=Math.min(state.lo,state.hi), hi=Math.max(state.lo,state.hi);
+  const amts=state.lipids.filter(l=>l.name&&validAmt(l.amount)).map(l=>`${l.name} ${+l.amount}`);
+  return {lo, hi, text:`Volume = absolute amount ÷ mean A ${lo}–${hi} nm · single wavelength ${state.ref} nm`,
+          amounts:`Absolute amounts (A·µL): ${[...amts, `default ${state.target}`].join(' · ')}`};
+}
+function sheetHtml(){
+  const D=planData(), S=settingsLine(), br='<br style="mso-data-placement:same-cell">';
+  const th=`style="${FONT}font-size:9pt;font-weight:600;color:${SC.muted};text-align:left;padding:3pt 6pt;border-bottom:1.5pt solid ${SC.ink}"`;
+  const thn=th.replace('text-align:left','text-align:right');
+  const td=(x,extra='')=>`<td style="${FONT}font-size:9.5pt;color:${SC.ink};padding:3pt 6pt;border-bottom:.75pt solid ${SC.rule};${extra}">${x}</td>`;
+  const tdn=(x,extra='')=>td(x,'text-align:right;font-variant-numeric:tabular-nums;'+extra);
+  const cell=w=>{
+    const base=`${FONT}width:25%;vertical-align:top;padding:5pt 6pt;border-radius:6pt;`;
+    const co=`<span style="font-size:11pt;font-weight:700;color:${SC.accent}">${w.co}</span>`;
+    if(!w.name) return `<td style="${base}height:68pt;background:#fff;border:1pt dashed ${SC.edge};color:${SC.muted};font-size:9pt">${co}${br}<span style="color:${SC.muted}">empty</span></td>`;
+    const lip=`<span style="font-size:8.5pt;color:${SC.accent}">${esc(w.lipid)} · ${fmt(w.amt,2)} A·µL</span>`;
+    const name=`<span style="font-size:10.5pt;font-weight:600;color:${SC.ink}">${esc(w.name)}</span>`;
+    const vol= w.found? `<span style="font-size:16pt;font-weight:700;color:${w.over?SC.bad:SC.well}">${fmt(w.vol,2)}</span><span style="font-size:9pt;color:${w.over?SC.bad:SC.well}"> µL${w.over?' ⚠':''}</span>`
+                      : `<span style="font-size:9pt;color:${SC.bad}">${w.status}</span>`;
+    const ab= w.found? `<span style="font-size:8.5pt;color:${SC.muted}">mean A ${fmt(w.mean,3)} · A${state.ref} ${fmt(w.ref,3)}</span>` : '';
+    return `<td style="${base}height:68pt;background:${w.found?SC.fill:'#fff'};border:1.5pt solid ${w.found?SC.well:SC.edge};color:${SC.ink}">${co}${br}${name}${br}${lip}${br}${vol}${ab?br+ab:''}</td>`;
+  };
+  const slide=sl=>{
+    const map=`<table style="border-collapse:separate;border-spacing:5pt;width:100%;table-layout:fixed;background:${SC.slide};border:1pt solid ${SC.edge};border-radius:8pt">
+      ${[0,1].map(r=>`<tr>${[0,1,2,3].map(c=>cell(sl.wells[r*4+c])).join('')}</tr>`).join('')}</table>`;
+    const rows=sl.order.filter(w=>w.name).map(w=>`<tr>${td(`<b style="color:${SC.accent}">${w.co}</b>`)}${td(esc(w.name),'font-weight:600')}${td(esc(w.lipid))}${tdn(fmt(w.amt,2))}${tdn(w.found?fmt(w.mean,3):'–')}${tdn(w.found?fmt(w.ref,3):'–')}${
+      w.found? tdn(fmt(w.vol,2),`font-weight:700;color:${w.over?SC.bad:SC.ink}`) : tdn(w.status,`color:${SC.bad}`)}</tr>`).join('');
+    const table= rows? `<table style="border-collapse:collapse;width:100%;margin-top:8pt"><thead><tr><th ${th}>Well</th><th ${th}>Sample</th><th ${th}>Lipid</th><th ${thn}>Amount (A·µL)</th><th ${thn}>Mean A ${S.lo}–${S.hi} nm</th><th ${thn}>A ${state.ref} nm</th><th ${thn}>Volume (µL)</th></tr></thead>
+      <tbody>${rows}<tr>${td('<b>Total</b>','border-bottom:0')}${td(`${sl.nF} of 8 wells with data`,`color:${SC.muted};border-bottom:0`)}${td('','border-bottom:0')}${td('','border-bottom:0')}${td('','border-bottom:0')}${td('','border-bottom:0')}${tdn(fmt(sl.total,2),'font-weight:700;border-bottom:0')}</tr></tbody></table>`
+      : `<p style="${FONT}font-size:9.5pt;color:${SC.muted}">No samples on this slide.</p>`;
+    return `<div style="break-inside:avoid;page-break-inside:avoid;margin:0 0 18pt">
+      <h2 style="${FONT}font-size:13pt;font-weight:600;color:${SC.ink};margin:0 0 5pt">${esc(sl.name)} <span style="font-size:9.5pt;font-weight:400;color:${SC.muted}">· ibidi µ-Slide 8 Well · ${sl.nF} of 8 wells · ${fmt(sl.total,1)} µL in total</span></h2>${map}${table}</div>`;
+  };
+  return `<div style="${FONT}color:${SC.ink}">
+    <div style="border-bottom:2pt solid ${SC.accent};padding-bottom:5pt;margin-bottom:12pt">
+      <h1 style="${FONT}font-size:17pt;font-weight:600;margin:0;color:${SC.ink}">${esc(state.title.trim()||'NanoDrop volume plan')}</h1>
+      <p style="${FONT}font-size:9pt;color:${SC.muted};margin:3pt 0 0">${today()} · ${esc(S.text)}${br}${esc(S.amounts)}</p></div>
+    ${D.map(slide).join('')}</div>`;
+}
+/* plain-text version: tab separated, pastes cleanly into Excel */
+function sheetText(){
+  const D=planData(), S=settingsLine();
+  const out=[state.title.trim()||'NanoDrop volume plan', `${today()} · ${S.text}`, S.amounts];
+  D.forEach(sl=>{
+    out.push('', `${sl.name} (ibidi µ-Slide 8 Well) · ${sl.nF} of 8 wells · ${fmt(sl.total,1)} µL in total`,
+      ['Well','Sample','Lipid','Amount (A·µL)',`Mean A ${S.lo}–${S.hi} nm`,`A ${state.ref} nm`,'Volume (µL)'].join('\t'));
+    sl.order.forEach(w=>out.push([w.co, w.name||'empty', w.lipid, w.name?fmt(w.amt,2):'', w.found?fmt(w.mean,3):'', w.found?fmt(w.ref,3):'',
+      w.found? fmt(w.vol,2)+(w.over?' (above limit)':'') : (w.name? w.status : '')].join('\t')));
+    out.push(['Total','','','','','',fmt(sl.total,2)].join('\t'));
+  });
+  return out.join('\n');
+}
+async function copyPlan(btn){
+  const html=sheetHtml(), text=sheetText(); let ok=false;
+  try{
+    if(window.ClipboardItem && navigator.clipboard?.write){
+      await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([text],{type:'text/plain'})})]); ok=true;
+    }
+  }catch(e){}
+  if(!ok){ // fallback: copy a selected, hidden copy of the sheet (keeps formatting)
+    try{ const d=document.createElement('div'); d.innerHTML=html; d.style.cssText='position:fixed;left:-9999px;top:0;background:#fff';
+      document.body.appendChild(d); const r=document.createRange(); r.selectNodeContents(d); const sel=getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      ok=document.execCommand('copy'); sel.removeAllRanges(); d.remove(); }catch(e){}
+  }
+  if(!ok){ await copyText(text, btn); return; }
+  const old=btn.dataset.label||btn.textContent; btn.dataset.label=old; btn.textContent='Copied'; setTimeout(()=>btn.textContent=old,1500);
+}
+function buildSheet(){ $('sheet').innerHTML=sheetHtml(); }
 
 /* ---- sample chips: what is not on a slide yet ------------------------ */
 function placed(){ const set=new Set(); state.slides.forEach(sl=>sl.wells.forEach(w=>{ if(w.name.trim()) set.add(norm(w.name)); })); return set; }
@@ -554,10 +644,10 @@ function load(){
   try{ const s=JSON.parse(localStorage.getItem(KEY)||'null'); if(s) Object.assign(state,s); }catch(e){}
   state.masks=state.masks||{}; if(!ORDER[state.order]) state.order='col';
   if(!Array.isArray(state.lipids)) state.lipids=JSON.parse(JSON.stringify(DEFAULT_LIPIDS));
-  state.lipidOf=state.lipidOf||{};
+  state.lipidOf=state.lipidOf||{}; if(typeof state.title!=='string') state.title='';
   state.slides=(state.slides||[]).map(sl=>({name:sl.name, wells:sl.wells.map(w=>typeof w==='string'?{name:w,amount:''}:{name:w.name||'',amount:w.amount??''})}));
   if(!state.slides.length) state.slides=[emptySlide(1)];
-  $('raw').value=state.raw; for(const k of ['target','lo','hi','ref','maxv']) $(k).value=state[k]; $('order').value=state.order;
+  $('raw').value=state.raw; for(const k of ['target','lo','hi','ref','maxv']) $(k).value=state[k]; $('order').value=state.order; $('planTitle').value=state.title||'';
 }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 
@@ -615,12 +705,14 @@ function init(){
   $('maskLoad').addEventListener('click',()=>{ const n=$('maskList').value; if(!state.masks[n]) return; state.slides=JSON.parse(JSON.stringify(state.masks[n])); render(); $('maskList').value=n; });
   $('maskDelete').addEventListener('click',()=>{ const n=$('maskList').value; if(!state.masks[n]) return; delete state.masks[n]; render(); });
   $('copyTable').addEventListener('click',e=>copyText(lastTsv,e.currentTarget));
-  $('copyPlan').addEventListener('click',e=>{ updateWells(); copyText(lastPlan,e.currentTarget); });
+  $('copyPlan').addEventListener('click',e=>copyPlan(e.currentTarget));
+  $('planTitle').addEventListener('input',e=>{ state.title=e.target.value; save(); });
+  window.addEventListener('beforeprint',buildSheet);
   if(isLocal){
     $('saveCsv').hidden=false; $('print').hidden=false;
     $('saveCsv').addEventListener('click',()=>{ const csv=lastTsv.split('\n').map(l=>l.split('\t').map(c=>/[;"]/.test(c)?`"${c.replace(/"/g,'""')}"`:c).join(';')).join('\n');
       const u=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv'})); const a=document.createElement('a'); a.href=u; a.download='nanodrop-volumes.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),2000); });
-    $('print').addEventListener('click',()=>window.print());
+    $('print').addEventListener('click',()=>{ buildSheet(); window.print(); });
   }
   render();
 }

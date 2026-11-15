@@ -43,9 +43,25 @@ remembers your last data, settings, slides and saved masks in the browser).
 | **Lipids** | edit name, amount and keywords (comma-separated); *Add lipid*; × removes; the count shows how many samples each lipid got |
 | **Masks** | save and reload slide layouts, also before measuring (names are matched case-insensitively) |
 
-**Copy plan** gives one line per well (`A1  sample  amount  volume`), in fill
-order. **Save as CSV** and **Print layout** appear when the file is opened
-locally.
+## Plan sheet: Copy plan and Print plan
+
+Both produce the same sheet: a title (field *Title on print / copy*), the date,
+the settings used (range, single wavelength, amount per lipid), and for every
+ibidi slide
+
+- a **plate map** of the 8 wells (A1–D2 as on the slide) showing, per well, the
+  sample name, lipid and absolute amount, the **volume** (large; red with ⚠ if
+  above the "Flag volumes above" limit), the **mean A** over the range and
+  **A at the single wavelength**;
+- a **table** in fill order: Well · Sample · Lipid · Amount · Mean A · A at the
+  single wavelength · Volume, with the slide total.
+
+**Copy plan** puts it on the clipboard formatted (paste into Word, OneNote or
+Outlook and the plate map and tables keep their look; paste into Excel and the
+table lands in cells) and as tab-separated text for plain editors.
+**Print plan** (also Ctrl+P) prints only this sheet, not the page; one slide per
+A4 page, "Save as PDF" in the print dialog gives a PDF for the lab notebook.
+**Save as CSV** and **Print plan** appear when the file is opened locally.
 
 ## History
 
