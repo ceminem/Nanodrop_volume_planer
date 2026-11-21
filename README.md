@@ -91,6 +91,32 @@ Plan a dose series per sample on a 96-well plate and get the pipetting mask.
 - **Copy mask / Print mask:** the mask (A4 landscape) with legend, then the
   pipetting table.
 
+### Imported plate mask
+
+Instead of designing blocks, choose **Import plate mask** and paste the layout
+from Excel (or *Load file…* a CSV / TXT). The conditions and doses of every
+well are then used for the volumes, the pipetting table and the IC50 fit.
+
+- **One grid** (8 × 12): each well `condition dose`, e.g. `DOPC 0.5`,
+  `DOPC/DOTAP 1:1 0.5` (the last number is the dose) or `DOPC | 0.5`.
+- **Two grids**, one after the other: first the conditions, then the doses.
+- **A list**, one well per line: `Well; Condition; Dose` (`A1; DOPC; 0,5`) -
+  the format of *Download layout (CSV)*.
+- Row letters and the 1–12 line may be included; decimal commas are fine;
+  empty wells are unused.
+- `ctrl` / `untreated` / `Kontrolle` / `0` = **untreated control** for every
+  condition (dose 0, the 100 % for "% of untreated control");
+  `DOPC ctrl` or `DOPC 0` = control only for DOPC.
+- `blank` / `medium` / `Leerwert` = **background**: the mean of these wells is
+  subtracted (unless a blank value is typed in on the IC50 tab).
+- Wells with the same condition and dose are replicates wherever they are, and
+  the number of replicates may differ between doses. The mix per dose is for
+  its wells + 1.
+- The NanoDrop sample of a condition is picked automatically when it has the
+  same name; otherwise choose it in the conditions table.
+- *Start from the block layout* turns the current blocks into a mask to edit;
+  *Download layout (CSV)* saves either layout for the next plate.
+
 **Long names:** every condition has a short label (C1, CTAP, …) that the mask,
 the legend and the plots use; the full name is in the legend, tables and
 tooltips, and plot titles wrap to two lines.
@@ -99,8 +125,12 @@ tooltips, and plot titles wrap to two lines.
 
 Paste the 8 × 12 readout block (from Excel or the plate reader; row letters,
 the 1–12 line and decimal commas are fine). The wells are matched to the layout
-and doses of the titration tab - set that up first, also for plates not planned
-in the tool.
+and doses of the titration tab - blocks designed there or an **imported plate
+mask** (*Import plate mask…*); set that up first, also for plates not planned
+in the tool. Shared untreated-control wells are used as dose 0 for every
+condition; blank wells are averaged and subtracted. *Load example* fills in a
+mask (3 lipid coatings, 8 doses, shared control column, 4 blanks) and a
+simulated MTT readout; *Restore my plate* brings your own plate back.
 
 - **Fit:** 4-parameter log-logistic, the same model as `drc::LL.4` in R:
   `y = bottom + (top − bottom) / (1 + exp(slope · (ln dose − ln IC50)))`,

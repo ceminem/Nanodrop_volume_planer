@@ -195,6 +195,19 @@ table.pip td.pnote{min-width:13em;white-space:normal}
 .legend .li.off{opacity:.45}
 table.pip td,table.pip th{padding:4px 8px}
 table.pip tr.grp td{background:var(--bg);font-size:13.5px;white-space:normal;padding-top:8px}
+/* plate layout source / imported mask */
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:6px;overflow:hidden;margin-bottom:12px}
+.seg label{display:flex;gap:6px;align-items:center;padding:6px 12px;font-size:14px;cursor:pointer;color:var(--muted)}
+.seg label+label{border-left:1px solid var(--rule)}
+.seg input{margin:0}
+.seg label:has(input:checked){background:var(--bg);color:var(--ink);font-weight:600;box-shadow:inset 0 -3px 0 var(--accent)}
+#tMask{min-height:150px;tab-size:20}
+.minfo{font-size:13px;margin:8px 0 0;color:var(--muted)}
+.minfo b{color:var(--ink)}
+.minfo ul{margin:4px 0 0;padding-left:18px;color:var(--bad)}
+.pw.sh{border-style:dotted;background:var(--bg)}
+.pw.sh b{color:var(--muted)}
+.ro{font-size:13px;color:var(--ink);padding-top:9px;overflow-wrap:anywhere}
 /* IC50 */
 .res td.name{white-space:normal;min-width:13em;max-width:24em;overflow-wrap:anywhere;font-weight:500}
 .res td.note{white-space:normal;color:var(--warn-ink);font-size:12.5px;min-width:10em;max-width:22em}
@@ -277,6 +290,8 @@ table.pip tr.grp td{background:var(--bg);font-size:13.5px;white-space:normal;pad
   <section>
     <div class="panel">
       <span class="lab">Plate layout</span>
+      <div class="seg" role="radiogroup" aria-label="Where the plate layout comes from"><label><input type="radio" name="tLayout" value="blocks"> Design here (blocks)</label><label><input type="radio" name="tLayout" value="mask"> Import plate mask</label></div>
+      <div id="tBlockOpts">
       <div class="row"><button type="button" id="preset84">8 doses × 4 conditions</button><button type="button" id="preset48">4 doses × 8 conditions</button></div>
       <p class="hint">Both in triplicate. Doses go down the rows (lowest dose on top), replicates across the columns. A condition is a block of rows × columns; blocks fill the plate left to right, then the next block of rows.</p>
       <div class="fields">
@@ -284,6 +299,15 @@ table.pip tr.grp td{background:var(--bg);font-size:13.5px;white-space:normal;pad
         <div class="field"><label for="tReps">Replicates (columns)</label><select id="tReps"></select></div>
         <div class="field wide"><label class="chk"><input type="checkbox" id="tCtrl"> First dose is an untreated control (0)</label></div>
         <div class="field"><label for="tSpacing">Spacing between doses</label><select id="tSpacing"><option value="log">logarithmic</option><option value="lin">linear</option></select></div>
+      </div>
+      </div>
+      <div id="tMaskOpts" hidden>
+        <textarea id="tMask" spellcheck="false" aria-label="Plate mask" placeholder="Paste the plate layout from Excel: 8 rows × 12 columns, each well “condition dose”, e.g.&#10;DOPC 0.5    DOPC 1    DOPC 2 …&#10;ctrl = untreated control, blank = medium without cells, empty = unused.&#10;Row letters and the 1–12 line may be included."></textarea>
+        <div class="row" style="margin-top:8px"><button type="button" id="tMaskFile">Load file…</button><input type="file" id="tMaskIn" accept=".csv,.tsv,.txt,text/csv,text/plain" hidden><button type="button" id="tMaskFromBlocks">Start from the block layout</button><button type="button" id="tMaskDl">Download layout (CSV)</button></div>
+        <div class="minfo" id="tMaskInfo"></div>
+        <p class="hint">Accepted: <b>one grid</b> with “condition dose” per well (also <i>DOPC | 0.5</i>); <b>two grids</b> one after the other, conditions first, then doses; or a <b>list</b> with one well per line: <i>Well; Condition; Dose</i> (as the CSV download). <b>ctrl</b> / untreated / Kontrolle = untreated control (dose 0) for every condition, <i>DOPC ctrl</i> or <i>DOPC 0</i> only for DOPC; <b>blank</b> / medium / Leerwert = background, its mean is subtracted. Doses are in the unit chosen below. Wells with the same condition and dose are replicates, wherever they are.</p>
+      </div>
+      <div class="fields">
         <div class="field"><label for="tUnit">Dose is given as</label><select id="tUnit"><option value="amount">amount (A·µL)</option><option value="volume">volume (µL)</option></select></div>
         <div class="field"><label for="tFinal">Final volume per well (µL)</label><input id="tFinal" type="number" step="any" min="0" placeholder="optional"></div>
         <div class="field"><label for="tMin">Smallest volume you pipette (µL)</label><input id="tMin" type="number" step="any" min="0"></div>
@@ -296,7 +320,7 @@ table.pip tr.grp td{background:var(--bg);font-size:13.5px;white-space:normal;pad
     <div class="panel">
       <div class="tblhead"><h2>Conditions</h2><div class="row"><span class="hint" id="tCap" style="margin:0"></span><button type="button" id="tAdd">Add condition</button></div></div>
       <div class="tbl" id="tConds"></div>
-      <p class="hint">Pick the NanoDrop sample and the dose range (from – to) per condition; the doses in between are filled in. To use your own doses, type them in the Doses field (e.g. <i>0, 0.1, 0.4, 1</i>). The short label is what the plate mask and the plots show, so long names stay readable.</p>
+      <p class="hint" id="tCondHint"></p>
     </div>
     <div class="panel">
       <div class="tblhead"><h2>Plate mask</h2><div class="row noprint"><button type="button" id="tCopy">Copy mask</button><button type="button" id="tPrint" hidden>Print mask</button></div></div>
@@ -314,7 +338,9 @@ table.pip tr.grp td{background:var(--bg);font-size:13.5px;white-space:normal;pad
     <div class="panel">
       <label class="lab" for="rRaw">Plate readout</label>
       <textarea id="rRaw" spellcheck="false" placeholder="Paste the 8 × 12 block of values from Excel or the plate reader. Row letters and the 1–12 line may be included; decimal commas are fine."></textarea>
-      <p class="hint">The wells are matched to the layout and doses on the <b>96-well titration</b> tab, so set that up first (also for plates not planned here).</p>
+      <p class="minfo" id="rLayoutInfo"></p>
+      <div class="row" style="margin-top:8px"><button type="button" id="rMask">Import plate mask…</button><button type="button" id="rExample">Load example</button><button type="button" id="rRestore" hidden>Restore my plate</button></div>
+      <p class="hint">The wells are matched to the plate layout of the <b>96-well titration</b> tab: designed there as blocks, or an imported plate mask (conditions and doses per well).</p>
       <div class="fields">
         <div class="field"><label for="rBlank">Blank (subtracted)</label><input id="rBlank" type="number" step="any" placeholder="optional"></div>
         <div class="field"><label for="rNorm">Response</label><select id="rNorm"><option value="raw">as measured</option><option value="pct">% of untreated control</option></select></div>
@@ -770,7 +796,7 @@ function load(){
   if(!Array.isArray(state.lipids)) state.lipids=JSON.parse(JSON.stringify(DEFAULT_LIPIDS));
   state.lipidOf=state.lipidOf||{}; if(typeof state.title!=='string') state.title='';
   { const d=defaultPlate(); state.plate=Object.assign(d, state.plate||{}); if(!Array.isArray(state.plate.conds)||!state.plate.conds.length) state.plate.conds=d.conds;
-    state.plate.excl=state.plate.excl||{}; if(![2,3,4,5,6,7,8].includes(+state.plate.steps)) state.plate.steps=4; if(![1,2,3,4,6].includes(+state.plate.reps)) state.plate.reps=3; T=state.plate; }
+    state.plate.excl=state.plate.excl||{}; state.plate.maskMeta=state.plate.maskMeta||{}; if(state.plate.layout!=='mask') state.plate.layout='blocks'; if(![2,3,4,5,6,7,8].includes(+state.plate.steps)) state.plate.steps=4; if(![1,2,3,4,6].includes(+state.plate.reps)) state.plate.reps=3; T=state.plate; }
   state.slides=(state.slides||[]).map(sl=>({name:sl.name, wells:sl.wells.map(w=>typeof w==='string'?{name:w,amount:''}:{name:w.name||'',amount:w.amount??''})}));
   if(!state.slides.length) state.slides=[emptySlide(1)];
   $('raw').value=state.raw; for(const k of ['target','lo','hi','ref','maxv']) $(k).value=state[k]; $('order').value=state.order; $('planTitle').value=state.title||'';
@@ -860,7 +886,7 @@ const rgba=(hex,a)=>`rgba(${parseInt(hex.slice(1,3),16)},${parseInt(hex.slice(3,
 let T=null;
 function defaultPlate(){ return {steps:4, reps:3, ctrl:false, spacing:'log', unit:'amount', final:'', minv:0.5, title:'',
   conds:Array.from({length:8},(_,k)=>({name:`Condition ${k+1}`, code:`C${k+1}`, sample:'', lo:1, hi:14, doses:''})),
-  raw:'', blank:'', norm:'raw', xlab:'', ylab:'', excl:{}, overlay:false}; }
+  raw:'', blank:'', norm:'raw', xlab:'', ylab:'', excl:{}, overlay:false, layout:'blocks', mask:'', maskMeta:{}}; }
 
 function geom(){ const n=+T.steps, r=+T.reps, rb=Math.floor(8/n), cb=Math.floor(12/r); return {n, r, rb, cb, max:rb*cb}; }
 const wellName=(row,col)=>ROWS[row]+(col+1);
@@ -909,8 +935,9 @@ function sampleStatus(c){
           : {txt: samples.length? 'not in the NanoDrop data' : 'waiting for NanoDrop data', bad:true};
 }
 function titrPlan(){
+  if(T.layout==='mask') return maskPlan();
   const g=geom(), fin=finalVol();
-  return T.conds.map((c,k)=>{
+  const plan=T.conds.map((c,k)=>{
     const ws=condWells(k), D=dosesOf(c);
     const steps=Array.from({length:g.n},(_,i)=>{ const dose=D.d? D.d[i] : NaN, v=sampleVol(c,dose);
       const med= fin!=null&&isFinite(v)? fin-v : NaN;
@@ -919,14 +946,160 @@ function titrPlan(){
     return {k, c, code:(c.code||'').trim()||`C${k+1}`, name:(c.name||'').trim()||`Condition ${k+1}`, color:colorOf(k),
             ws, on:!!ws, D, steps, need, fin, st:sampleStatus(c)};
   });
+  plan.shared={ctrl:[], blank:[]}; return plan;
 }
-function wellIndex(plan){ const m={}; plan.forEach(p=>{ if(p.ws) p.ws.forEach((row,i)=>row.forEach((w,j)=>m[w]={p, i, j})); }); return m; }
+/* well -> {p, i, j}; shared control / blank wells are not in it (see sharedOf) */
+function wellIndex(plan){ const m={}; plan.forEach(p=>{ if(p.on) p.steps.forEach((s,i)=>{ if(!s.shared&&s.wells) s.wells.forEach((w,j)=>m[w]={p, i, j}); }); }); return m; }
+function sharedOf(plan,w){ const sh=plan.shared||{}; return (sh.ctrl||[]).includes(w)? 'ctrl' : (sh.blank||[]).includes(w)? 'blank' : null; }
+const mixOf=s=>(s.wells? s.wells.length : 0)+1;
+/* "A2–A4" / "A2–C2" for a run in one row or column, else a list */
+function wellList(ws){
+  if(!ws||!ws.length) return ''; if(ws.length===1) return ws[0];
+  const rc=ws.map(w=>[ROWS.indexOf(w[0]), +w.slice(1)-1]);
+  const run=(a)=>a.every((v,i)=>i===0||v===a[i-1]+1);
+  if(rc.every(x=>x[0]===rc[0][0]) && run(rc.map(x=>x[1]))) return `${ws[0]}–${ws[ws.length-1]}`;
+  if(rc.every(x=>x[1]===rc[0][1]) && run(rc.map(x=>x[0]))) return `${ws[0]}–${ws[ws.length-1]}`;
+  return ws.length>8? `${ws.slice(0,6).join(', ')} … (${ws.length} wells)` : ws.join(', ');
+}
+const condWellsText=p=> T.layout==='mask'? `${p.steps.reduce((a,s)=>a+(s.shared?0:s.wells.length),0)} wells` : wellSpan(p.ws);
+
+/* ---- imported plate mask -------------------------------------------------
+   One 8 x 12 grid ("DOPC 0.5" per well), two grids (conditions, then doses)
+   or a list (Well; Condition; Dose). ctrl = untreated control for every
+   condition, "<name> ctrl" / "<name> 0" for one condition, blank = background. */
+const WELL_RE=/^\s*([A-H])\s*0?(1[0-2]|[1-9])\s*$/i;
+const BLANK_RE=/^(blank|blanks|bl|bg|background|medium|medium only|no cells|leer|leerwert|blindwert|medium ohne zellen)$/i;
+const CTRL_RE=/^(ctrl|control|ctl|untreated|ut|neg|negative control|cells|cells only|kontrolle|unbehandelt|nk|0)$/i;
+const CTRL_TAIL=/^(.*\S)[\s_-]+(ctrl|control|untreated|kontrolle|unbehandelt)$/i;
+const UNIT_RE=/\s*(A·?µL|AµL|A\*µL|µL|uL|µg|ug|µM|uM|nM|mM|mg\/ml|%)\s*$/i;
+function maskSplit(line){ const sep= line.includes('\t')? '\t' : line.includes(';')? ';' : line.includes(',')&&!/^\s*[\d.,\s]+$/.test(line)? ',' : null;
+  return (sep? line.split(sep) : [line]).map(x=>x.trim().replace(/^"(.*)"$/,'$1').trim()); }
+function doseNum(x){ return num(String(x||'').replace(UNIT_RE,'')); }
+function nameCell(x){ // a cell that holds only the condition (two grids / list)
+  x=String(x||'').trim(); if(!x||x==='–'||x==='-') return null;
+  if(BLANK_RE.test(x)) return {kind:'blank'}; if(CTRL_RE.test(x)) return {kind:'ctrl'};
+  const m=x.match(CTRL_TAIL); if(m) return {kind:'cond', name:m[1].trim(), dose:0};
+  return {kind:'cond', name:x, dose:NaN};
+}
+function parseCell(x){ // "DOPC 0.5", "DOPC | 0.5", "C1 0.5 | 3.21 µL" (Copy mask), ctrl, blank
+  x=String(x||'').replace(/\s*\|\s*(?:[-\d.,]+|–)\s*(?:µL|uL|ul)\s*$/i,'').trim();
+  const n=nameCell(x); if(!n||n.kind!=='cond'||n.dose===0) return n;
+  let m=x.match(/^(.*?)\s*[|@]\s*(.+)$/); if(m) return {kind:'cond', name:m[1].trim(), dose:doseNum(m[2])};
+  if(isFinite(doseNum(x))) return {kind:'num', dose:doseNum(x)};
+  m=x.replace(UNIT_RE,'').match(/^(.*\S)[\s:]+(\d*[.,]?\d+(?:e-?\d+)?)$/i);
+  if(m) return {kind:'cond', name:m[1].trim(), dose:num(m[2])};
+  return {kind:'cond', name:x, dose:NaN};
+}
+function parseMask(text){
+  const out={wells:{}, warn:[], fmt:''};
+  const rows=String(text||'').split(/\r?\n/).filter(l=>l.trim()).map(maskSplit);
+  if(!rows.length) return out;
+  const listRows=rows.filter(t=>WELL_RE.test(t[0]));
+  if(listRows.length>=2 && listRows.length>=0.6*rows.length){
+    out.fmt='list';
+    listRows.forEach(t=>{ const m=t[0].match(WELL_RE), w=m[1].toUpperCase()+(+m[2]);
+      const hasDose= t[2]!=null && t[2]!=='';
+      const c= hasDose? nameCell(t[1]) : parseCell(t[1]);
+      if(c&&c.kind==='cond'&&hasDose&&!isFinite(c.dose)) c.dose=doseNum(t[2]);
+      if(c) out.wells[w]=c; });
+    return finishMask(out);
+  }
+  // grids: with row letters a new grid starts when a letter repeats or goes back
+  // (A after H); without them every 8 lines are one grid
+  const lettered=rows.some(t=>/^[A-H]$/i.test(t[0])), blocks=[]; let cur=null, last=-1, seq=0;
+  rows.forEach(t=>{
+    let r=null;
+    if(/^[A-H]$/i.test(t[0])){ r=ROWS.indexOf(t[0].toUpperCase()); t=t.slice(1); } else if(lettered) return;   // titles, notes
+    const filled=t.filter(x=>x!=='');
+    if(filled.length>=2 && filled.every((x,i)=>x===String(i+1))) return;                                     // 1 2 3 … 12
+    if(!filled.length) return;
+    if(r==null){ if(!cur||seq>=8){ cur={rows:{}}; blocks.push(cur); seq=0; } r=seq; }
+    else if(!cur || cur.rows[r]!=null || r<last){ cur={rows:{}}; blocks.push(cur); }
+    cur.rows[r]=t.slice(0,12); last=r; seq=r+1;
+  });
+  if(!blocks.length) return out;
+  const numeric=b=>{ const c=Object.values(b.rows).flat().filter(x=>x!==''); return c.length>0 && c.filter(x=>isFinite(doseNum(x))).length>=0.8*c.length; };
+  let names=blocks[0], doses=null;
+  if(blocks.length>=2){ if(numeric(blocks[1])&&!numeric(blocks[0])) doses=blocks[1]; else if(numeric(blocks[0])&&!numeric(blocks[1])){ names=blocks[1]; doses=blocks[0]; }
+    else out.warn.push(`${blocks.length} grids found – only the first is used (a second grid must hold only doses)`); }
+  if(blocks.length>2) out.warn.push(`${blocks.length} grids found – the first two are used`);
+  out.fmt= doses? 'two grids (conditions + doses)' : 'one grid';
+  for(let r=0;r<8;r++) for(let c=0;c<12;c++){
+    const x=(names.rows[r]||[])[c]; if(x==null||x==='') continue; const w=wellName(r,c);
+    let cell;
+    if(doses){ cell=nameCell(x); const d=doseNum((doses.rows[r]||[])[c]);
+      if(cell&&cell.kind==='cond'&&!isFinite(cell.dose)) cell=isFinite(d)? {...cell, dose:d} : parseCell(x); }
+    else cell=parseCell(x);
+    if(cell) out.wells[w]=cell;
+  }
+  return finishMask(out);
+}
+function finishMask(out){
+  const noName=[], noDose=[];
+  Object.entries(out.wells).forEach(([w,c])=>{ if(c.kind==='num') noName.push(w); else if(c.kind==='cond'&&!(isFinite(c.dose)&&c.dose>=0)) noDose.push(`${w} (${c.name})`); });
+  if(noName.length) out.warn.push(`only a dose, no condition: ${wellList(noName)} – write e.g. “DOPC ${out.wells[noName[0]].dose}”`);
+  if(noDose.length) out.warn.push(`no dose: ${noDose.slice(0,6).join(', ')}${noDose.length>6?` … (${noDose.length})`:''} – write e.g. “${out.wells[noDose[0].split(' ')[0]].name} 0.5”`);
+  return out;
+}
+function maskLayout(){
+  const P=parseMask(T.mask), byKey={}, conds=[], shared={ctrl:[], blank:[]};
+  for(let r=0;r<8;r++) for(let c=0;c<12;c++){ const w=wellName(r,c), x=P.wells[w]; if(!x) continue;
+    if(x.kind==='blank') shared.blank.push(w); else if(x.kind==='ctrl') shared.ctrl.push(w);
+    else if(x.kind==='cond'&&isFinite(x.dose)&&x.dose>=0){ const k=norm(x.name);
+      if(!byKey[k]){ byKey[k]={name:x.name, key:k, d:{}}; conds.push(byKey[k]); }
+      (byKey[k].d[x.dose]=byKey[k].d[x.dose]||[]).push(w); } }
+  conds.forEach(c=>c.steps=Object.keys(c.d).map(Number).sort((a,b)=>a-b).map(dose=>({dose, wells:c.d[dose]})));
+  return {P, conds, shared};
+}
+function maskPlan(){
+  const L=maskLayout(), fin=finalVol(); T.maskMeta=T.maskMeta||{};
+  const plan=L.conds.map((mc,k)=>{
+    const meta=T.maskMeta[mc.key]||{code:'', sample:''};
+    const c={name:mc.name, code:meta.code||'', sample: meta.sample!=null&&meta.sample!==''? meta.sample : (sampleFor(mc.name)? mc.name : ''), key:mc.key};
+    let steps=mc.steps.map(s=>{ const v=sampleVol(c,s.dose), med= fin!=null&&isFinite(v)? fin-v : NaN;
+      return {dose:s.dose, v, med, over: fin!=null&&v>fin, pd:predil(v), wells:s.wells}; });
+    if(!steps.some(s=>s.dose===0) && L.shared.ctrl.length) steps.unshift({dose:0, v:0, med:fin!=null? fin : NaN, over:false, pd:null, wells:L.shared.ctrl, shared:true});
+    steps.forEach((s,i)=>s.i=i);
+    const need= steps.some(s=>!s.shared&&s.dose>0&&!isFinite(s.v))? NaN : steps.reduce((a,s)=>a+(!s.shared&&isFinite(s.v)? s.v*s.wells.length : 0),0);
+    return {k, c, code:(c.code||'').trim(), name:mc.name, color:colorOf(k), ws:steps.map(s=>s.wells), on:true, D:{d:steps.map(s=>s.dose)}, steps, need, fin, st:sampleStatus(c)};
+  });
+  // short label: the name if it is short, else its first word if unique, else C1, C2 …
+  const first=plan.map(p=>p.name.split(/[\s_]+/)[0]);
+  plan.forEach((p,k)=>{ if(p.code) return; p.code= p.name.length<=8? p.name
+    : first[k].length<=8 && first.filter(f=>norm(f)===norm(first[k])).length===1 && !plan.some((q,j)=>j!==k&&norm(q.name)===norm(first[k]))? first[k] : `C${k+1}`; });
+  plan.shared=L.shared; plan.mask=L; return plan;
+}
+function maskSummary(plan){
+  const L=plan.mask, n=Object.keys(L.P.wells).length;
+  if(!n) return '';
+  const used=plan.reduce((a,p)=>a+p.steps.reduce((b,s)=>b+(s.shared?0:s.wells.length),0),0);
+  return `Read as <b>${esc(L.P.fmt)}</b> · <b>${plan.length}</b> condition${plan.length===1?'':'s'} · ${used} wells`+
+    (L.shared.ctrl.length? ` · untreated control ${wellList(L.shared.ctrl)}` : '')+(L.shared.blank.length? ` · blank ${wellList(L.shared.blank)}` : '');
+}
+/* the current layout (either source) as an 8 x 12 grid / a list */
+function layoutCells(plan){ const idx=wellIndex(plan), out={};
+  for(let r=0;r<8;r++) for(let c=0;c<12;c++){ const w=wellName(r,c), o=idx[w], sh=sharedOf(plan,w);
+    if(o) out[w]={name:o.p.name, dose:o.p.steps[o.i].dose}; else if(sh) out[w]={name:sh}; }
+  return out; }
+const decComma=v=>String(sig(v)).replace('.',',');
+function maskCsv(){ const plan=titrPlan(), cells=layoutCells(plan), out=['Well;Condition;Dose ('+doseUnit()+')'];
+  for(let r=0;r<8;r++) for(let c=0;c<12;c++){ const w=wellName(r,c), x=cells[w]; if(x) out.push(`${w};${x.name.replace(/;/g,',')};${x.dose!=null? decComma(x.dose) : ''}`); }
+  return out.join('\r\n'); }
+function maskGridText(plan){ const cells=layoutCells(plan), out=['\t'+[...Array(12)].map((_,c)=>c+1).join('\t')];
+  for(let r=0;r<8;r++){ const row=[ROWS[r]]; for(let c=0;c<12;c++){ const x=cells[wellName(r,c)]; row.push(x? (x.dose!=null? `${x.name} ${fmtDose(x.dose)}` : x.name) : ''); } out.push(row.join('\t')); }
+  return out.join('\n'); }
 
 /* ---- titration: screen ---------------------------------------------- */
 function renderTitr(){
+  const mask=T.layout==='mask';
+  document.querySelectorAll('input[name="tLayout"]').forEach(r=>r.checked= r.value===(mask?'mask':'blocks'));
+  $('tBlockOpts').hidden=mask; $('tMaskOpts').hidden=!mask; $('tAdd').hidden=mask;
+  $('tUnit').value=T.unit; $('tFinal').value=T.final; $('tMin').value=T.minv; $('tTitle').value=T.title||'';
+  $('tCondHint').innerHTML= mask? 'Conditions and doses come from the mask (edit them there). Pick the NanoDrop sample per condition to get the volumes; a sample with the same name as the condition is picked automatically. The short label is what the plate and the plots show, so long names stay readable.'
+    : 'Pick the NanoDrop sample and the dose range (from – to) per condition; the doses in between are filled in. To use your own doses, type them in the Doses field (e.g. <i>0, 0.1, 0.4, 1</i>). The short label is what the plate mask and the plots show, so long names stay readable.';
+  if(mask){ if($('tMask').value!==(T.mask||'')) $('tMask').value=T.mask||''; renderMaskConds(); updateTitr(); return; }
   const g=geom();
-  $('tSteps').value=T.steps; $('tReps').value=T.reps; $('tCtrl').checked=!!T.ctrl; $('tSpacing').value=T.spacing; $('tUnit').value=T.unit;
-  $('tFinal').value=T.final; $('tMin').value=T.minv; $('tTitle').value=T.title||'';
+  $('tSteps').value=T.steps; $('tReps').value=T.reps; $('tCtrl').checked=!!T.ctrl; $('tSpacing').value=T.spacing;
   $('tConds').innerHTML=`<table class="conds"><thead><tr><th></th><th>Short</th><th>Condition</th><th>Sample</th><th class="n">From</th><th class="n">To</th><th>Doses (<span class="du">${doseUnit()}</span>)</th><th>Wells</th><th></th></tr></thead><tbody>${
     T.conds.map((c,k)=>`<tr data-k="${k}">
       <td><span class="dot" style="background:${colorOf(k)}"></span></td>
@@ -941,9 +1114,30 @@ function renderTitr(){
   }</tbody></table>`;
   updateTitr();
 }
+let maskKeys='';
+function renderMaskConds(){
+  const plan=titrPlan();
+  $('tConds').innerHTML= !plan.length? '<p class="empty">Paste or load a plate mask on the left.</p>' :
+    `<table class="conds"><thead><tr><th></th><th>Short</th><th>Condition (from the mask)</th><th>Sample</th><th>Doses (<span class="du">${doseUnit()}</span>)</th><th>Wells</th></tr></thead><tbody>${
+    plan.map(p=>`<tr data-mk="${esc(p.c.key)}">
+      <td><span class="dot" style="background:${p.color}"></span></td>
+      <td><input class="ccode" data-m="${esc(p.c.key)}" data-f="code" value="${esc(p.c.code)}" placeholder="${esc(p.code)}" maxlength="8" aria-label="Short label of ${esc(p.name)}"></td>
+      <td class="ro"><b>${esc(p.name)}</b></td>
+      <td><input class="csample" data-m="${esc(p.c.key)}" data-f="sample" list="samplelist" value="${esc(p.c.sample)}" placeholder="NanoDrop sample" aria-label="Sample of ${esc(p.name)}"><div class="cinfo" data-minfo="${esc(p.c.key)}"></div></td>
+      <td class="ro">${p.steps.map(s=>s.shared? `<span class="m">0 (ctrl)</span>` : fmtDose(s.dose)).join(', ')}</td>
+      <td class="cwells">${condWellsText(p)}</td></tr>`).join('')}</tbody></table>`;
+  maskKeys=plan.map(p=>p.c.key).join('|');
+}
 function updateTitr(){
-  const plan=titrPlan(), g=geom();
-  plan.forEach(p=>{
+  const plan=titrPlan(), g=geom(), mask=T.layout==='mask';
+  if(mask){
+    if(plan.map(p=>p.c.key).join('|')!==maskKeys) renderMaskConds();
+    plan.forEach(p=>{ const i=document.querySelector(`#tConds [data-minfo="${CSS.escape(p.c.key)}"]`); if(i){ i.textContent=p.st.txt; i.classList.toggle('bad',p.st.bad); } });
+    const L=plan.mask; $('tMaskInfo').innerHTML= !String(T.mask||'').trim()? '' :
+      (maskSummary(plan)||'<span class="bad">No wells recognised.</span>')+(L.P.warn.length? `<ul>${L.P.warn.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>` : '');
+    $('tCap').textContent=`${plan.length} condition${plan.length===1?'':'s'} from the mask`;
+  }
+  if(!mask) plan.forEach(p=>{
     const tr=document.querySelector(`#tConds tr[data-k="${p.k}"]`); if(!tr) return;
     tr.classList.toggle('off',!p.on);
     const di=tr.querySelector('.cdoses'); const comp=computedDoses(p.c);
@@ -955,31 +1149,38 @@ function updateTitr(){
     tr.querySelector('.cname').title=p.name;
   });
   document.querySelectorAll('#tConds .du').forEach(e=>e.textContent=doseUnit());
-  const used=Math.min(T.conds.length,g.max);
-  $('tCap').textContent=`${used} of ${g.max} blocks used`+(T.conds.length>g.max? ` · ${T.conds.length-g.max} not on the plate` : '');
-  $('tAdd').disabled= T.conds.length>=g.max;
-  const idx=wellIndex(plan);
-  $('tPlate').innerHTML=plateGrid(w=>{ const o=idx[w]; if(!o) return `<div class="pw empty" title="${w}: empty"></div>`;
-    const s=o.p.steps[o.i], a=g.n>1? 0.10+0.42*o.i/(g.n-1) : 0.25, warn=s.over||!!s.pd||(!isFinite(s.v)&&isFinite(s.dose));
+  if(!mask){ const used=Math.min(T.conds.length,g.max);
+    $('tCap').textContent=`${used} of ${g.max} blocks used`+(T.conds.length>g.max? ` · ${T.conds.length-g.max} not on the plate` : '');
+    $('tAdd').disabled= T.conds.length>=g.max; }
+  const idx=wellIndex(plan), fin=finalVol();
+  $('tPlate').innerHTML=plateGrid(w=>{ const o=idx[w], sh=sharedOf(plan,w);
+    if(sh==='ctrl') return `<div class="pw sh" title="${w}: untreated control – medium only${fin!=null? ` (${fin} µL)` : ''}"><b>ctrl</b><span class="pd">0</span><span class="pv">${fin!=null? fmtUL(fin)+' µL' : 'medium'}</span></div>`;
+    if(sh==='blank') return `<div class="pw sh" title="${w}: blank – medium without cells"><b>blank</b><span class="pd">no cells</span></div>`;
+    if(!o) return `<div class="pw empty" title="${w}: empty"></div>`;
+    const n=o.p.steps.length, s=o.p.steps[o.i], a=n>1? 0.10+0.42*o.i/(n-1) : 0.25, warn=s.over||!!s.pd||(!isFinite(s.v)&&isFinite(s.dose));
     return `<div class="pw${warn?' warn':''}" style="background:${rgba(o.p.color,a)};border-color:${o.p.color}" title="${esc(`${w} · ${o.p.name} · dose ${fmtDose(s.dose)} ${doseUnit()} · ${fmtUL(s.v)} µL sample`+(isFinite(s.med)? ` + ${fmtUL(s.med)} µL medium` : ''))}">
       <b style="color:${o.p.color}">${esc(o.p.code)}</b><span class="pd">${fmtDose(s.dose)}</span><span class="pv">${isFinite(s.v)? fmtUL(s.v)+' µL' : '–'}</span></div>`; });
   $('tLegend').innerHTML=`<div class="legend">${plan.map(p=>`<span class="li${p.on?'':' off'}"><span class="dot" style="background:${p.color}"></span><b>${esc(p.code)}</b> ${esc(p.name)}${p.c.sample? ` <span class="m">(${esc(p.c.sample)})</span>` : ''}</span>`).join('')}</div>
-    <p class="note">Each well: short label, dose (${doseUnit()}), sample volume. Darker = higher dose.</p>`;
+    <p class="note">Each well: short label, dose (${doseUnit()}), sample volume. Darker = higher dose.${(plan.shared.ctrl.length||plan.shared.blank.length)? ' Dotted: untreated control (ctrl) and blank, shared by all conditions.' : ''}</p>`;
   renderPip(plan);
   save();
   if(state.tab==='ic50') ic50Update();
 }
 function renderPip(plan){
-  const g=geom(), fin=finalVol(), mix=g.r+1;
-  const head=`<tr><th>Dose (${doseUnit()})</th><th>Wells</th><th class="n">Sample / well (µL)</th>${fin!=null?'<th class="n">Medium / well (µL)</th>':''}<th class="n">Mix for ${mix} wells: sample</th>${fin!=null?'<th class="n">medium</th>':''}<th>Note</th></tr>`;
-  const body=plan.filter(p=>p.on).map(p=>`<tr class="grp"><td colspan="${fin!=null?7:5}"><span class="dot" style="background:${p.color}"></span> <b>${esc(p.code)}</b> · ${esc(p.name)}
-      <span class="m">· ${p.c.sample? esc(p.c.sample)+' · ' : ''}${esc(p.st.txt)} · ${wellSpan(p.ws)} · sample needed ${fmtUL(p.need)} µL (+10 %: ${fmtUL(p.need*1.1)} µL)</span></td></tr>`+
-    p.steps.map(s=>{ const notes=[];
+  const fin=finalVol(), cols=fin!=null?7:5;
+  const head=`<tr><th>Dose (${doseUnit()})</th><th>Wells</th><th class="n">Sample / well (µL)</th>${fin!=null?'<th class="n">Medium / well (µL)</th>':''}<th class="n">Mix (wells + 1): sample</th>${fin!=null?'<th class="n">medium</th>':''}<th>Note</th></tr>`;
+  const body=plan.filter(p=>p.on).map(p=>`<tr class="grp"><td colspan="${cols}"><span class="dot" style="background:${p.color}"></span> <b>${esc(p.code)}</b> · ${esc(p.name)}
+      <span class="m">· ${p.c.sample? esc(p.c.sample)+' · ' : ''}${esc(p.st.txt)} · ${condWellsText(p)} · sample needed ${fmtUL(p.need)} µL (+10 %: ${fmtUL(p.need*1.1)} µL)</span></td></tr>`+
+    p.steps.filter(s=>!s.shared).map(s=>{ const notes=[], mix=mixOf(s);
       if(s.pd) notes.push(`below ${T.minv} µL: use ${fmtUL(s.pd.v)} µL of a 1:${s.pd.f} dilution`);
       if(s.over) notes.push('more than the final volume');
-      return `<tr><td class="n" style="text-align:left">${fmtDose(s.dose)}</td><td>${s.wells? rowSpan(s.wells) : ''}</td><td class="n vol${s.over?' bad':''}">${fmtUL(s.v)}</td>${fin!=null?`<td class="n">${fmtUL(s.med)}</td>`:''}<td class="n">${fmtUL(s.v*mix)}</td>${fin!=null?`<td class="n">${fmtUL(s.med*mix)}</td>`:''}<td class="pnote${notes.length?' bad':''}">${esc(notes.join('; '))}</td></tr>`; }).join('')).join('');
-  $('tPip').innerHTML=`<table class="pip"><thead>${head}</thead><tbody>${body}</tbody></table>
-    <p class="note">Mix for ${mix} wells = one well more than the ${g.r} replicates, so there is enough to pipette from.${fin==null? ' Set a final volume per well to get the medium volumes.' : ''}</p>`;
+      return `<tr><td class="n" style="text-align:left">${fmtDose(s.dose)}</td><td>${s.wells? wellList(s.wells) : ''}</td><td class="n vol${s.over?' bad':''}">${fmtUL(s.v)}</td>${fin!=null?`<td class="n">${fmtUL(s.med)}</td>`:''}<td class="n">${fmtUL(s.v*mix)}</td>${fin!=null?`<td class="n">${fmtUL(s.med*mix)}</td>`:''}<td class="pnote${notes.length?' bad':''}">${esc(notes.join('; '))}</td></tr>`; }).join('')).join('');
+  const sh=plan.shared||{ctrl:[],blank:[]};
+  const shared=(sh.ctrl.length||sh.blank.length)? `<tr class="grp"><td colspan="${cols}"><b>Shared wells</b> <span class="m">· for all conditions</span></td></tr>`+
+    (sh.ctrl.length? `<tr><td class="n" style="text-align:left">0 (ctrl)</td><td>${wellList(sh.ctrl)}</td><td class="n">0</td>${fin!=null?`<td class="n">${fmtUL(fin)}</td>`:''}<td class="n">0</td>${fin!=null?`<td class="n">${fmtUL(fin*(sh.ctrl.length+1))}</td>`:''}<td class="pnote">untreated control: cells + medium</td></tr>` : '')+
+    (sh.blank.length? `<tr><td class="n" style="text-align:left">blank</td><td>${wellList(sh.blank)}</td><td class="n">0</td>${fin!=null?`<td class="n">${fmtUL(fin)}</td>`:''}<td class="n">0</td>${fin!=null?`<td class="n">${fmtUL(fin*(sh.blank.length+1))}</td>`:''}<td class="pnote">medium without cells (background)</td></tr>` : '') : '';
+  $('tPip').innerHTML= !plan.length? '' : `<table class="pip"><thead>${head}</thead><tbody>${body}${shared}</tbody></table>
+    <p class="note">Mix = one well more than the replicates of that dose, so there is enough to pipette from.${fin==null? ' Set a final volume per well to get the medium volumes.' : ''}</p>`;
 }
 function plateGrid(cell){
   let h='<div class="plate"><div class="ph"></div>'; for(let c=0;c<12;c++) h+=`<div class="ph">${c+1}</div>`;
@@ -993,37 +1194,40 @@ function setLayout(steps,reps){ T.steps=steps; T.reps=reps; const max=geom().max
 /* ---- titration: sheet for print / copy -------------------------------- */
 function settingsTitr(){
   const g=geom(), fin=finalVol();
-  return `${g.n} doses × ${g.r} replicates · ${T.ctrl? 'first dose = untreated control · ' : ''}${T.spacing==='log'? 'logarithmic' : 'linear'} spacing · dose = ${T.unit==='volume'? 'sample volume (µL)' : 'absolute amount (A·µL), volume = dose ÷ mean A '+Math.min(state.lo,state.hi)+'–'+Math.max(state.lo,state.hi)+' nm'}`+(fin!=null? ` · final volume ${fin} µL/well` : '');
+  return (T.layout==='mask'? 'layout from an imported plate mask · ' : `${g.n} doses × ${g.r} replicates · ${T.ctrl? 'first dose = untreated control · ' : ''}${T.spacing==='log'? 'logarithmic' : 'linear'} spacing · `)+`dose = ${T.unit==='volume'? 'sample volume (µL)' : 'absolute amount (A·µL), volume = dose ÷ mean A '+Math.min(state.lo,state.hi)+'–'+Math.max(state.lo,state.hi)+' nm'}`+(fin!=null? ` · final volume ${fin} µL/well` : '');
 }
 function titrSheetHtml(){
-  const plan=titrPlan(), g=geom(), fin=finalVol(), idx=wellIndex(plan), br='<br style="mso-data-placement:same-cell">', mix=g.r+1;
+  const plan=titrPlan(), fin=finalVol(), idx=wellIndex(plan), br='<br style="mso-data-placement:same-cell">';
   const th=`style="${FONT}font-size:8pt;font-weight:600;color:${SC.muted};text-align:left;padding:2pt 5pt;border-bottom:1.25pt solid ${SC.ink}"`, thn=th.replace('text-align:left','text-align:right');
   const td=(x,e='')=>`<td style="${FONT}font-size:8.5pt;color:${SC.ink};padding:2pt 5pt;border-bottom:.75pt solid ${SC.rule};vertical-align:top;${e}">${x}</td>`, tdn=(x,e='')=>td(x,'text-align:right;'+e);
   let map=`<table style="border-collapse:separate;border-spacing:2pt;width:100%;table-layout:fixed"><tr><th style="${FONT}width:12pt"></th>${[...Array(12)].map((_,c)=>`<th style="${FONT}font-size:8pt;color:${SC.muted}">${c+1}</th>`).join('')}</tr>`;
   for(let r=0;r<8;r++){ map+=`<tr><th style="${FONT}font-size:8pt;color:${SC.muted}">${ROWS[r]}</th>`;
-    for(let c=0;c<12;c++){ const w=wellName(r,c), o=idx[w];
+    for(let c=0;c<12;c++){ const w=wellName(r,c), o=idx[w], sh=sharedOf(plan,w);
+      if(sh){ map+=`<td style="${FONT}height:25pt;font-size:7pt;line-height:1.15;text-align:center;vertical-align:middle;border:1pt dotted ${SC.muted};border-radius:5pt;color:${SC.muted}"><b style="font-size:8pt">${sh}</b>${br}${sh==='ctrl'? (fin!=null? fmtUL(fin)+' µL' : 'medium') : 'no cells'}</td>`; continue; }
       if(!o){ map+=`<td style="height:25pt;border:.75pt dashed ${SC.rule};border-radius:5pt"></td>`; continue; }
-      const s=o.p.steps[o.i], a=g.n>1? 0.10+0.40*o.i/(g.n-1) : 0.25;
+      const n=o.p.steps.length, s=o.p.steps[o.i], a=n>1? 0.10+0.40*o.i/(n-1) : 0.25;
       map+=`<td style="${FONT}height:25pt;font-size:7pt;line-height:1.15;text-align:center;vertical-align:middle;background:${rgba(o.p.color,a)};border:1pt solid ${o.p.color};border-radius:5pt;color:${SC.ink}"><b style="color:${o.p.color};font-size:8pt">${esc(o.p.code)}</b>${br}${fmtDose(s.dose)}${br}<b>${isFinite(s.v)? fmtUL(s.v)+' µL' : '–'}</b></td>`; }
     map+='</tr>'; }
   map+='</table>';
   const legend=`<table style="border-collapse:collapse;width:100%;margin-top:6pt"><thead><tr><th ${th}>Short</th><th ${th}>Condition</th><th ${th}>Sample</th><th ${th}>Doses (${doseUnit()})</th><th ${th}>Wells</th><th ${thn}>Sample needed (µL, +10 %)</th></tr></thead><tbody>${
-    plan.filter(p=>p.on).map(p=>`<tr>${td(`<b style="color:${p.color}">${esc(p.code)}</b>`)}${td(esc(p.name),'font-weight:600')}${td(esc(p.c.sample||'–')+` <span style="color:${p.st.bad?SC.bad:SC.muted}">(${esc(p.st.txt)})</span>`)}${td(p.steps.map(s=>fmtDose(s.dose)).join(', '))}${td(wellSpan(p.ws))}${tdn(`${fmtUL(p.need)} (${fmtUL(p.need*1.1)})`)}</tr>`).join('')}</tbody></table>`;
-  const pip=`<table style="border-collapse:collapse;width:100%;margin-top:10pt"><thead><tr><th ${th}>Short</th><th ${th}>Dose</th><th ${th}>Wells</th><th ${thn}>Sample / well (µL)</th>${fin!=null?`<th ${thn}>Medium / well (µL)</th>`:''}<th ${thn}>Mix ${mix} wells: sample</th>${fin!=null?`<th ${thn}>medium</th>`:''}<th ${th}>Note</th></tr></thead><tbody>${
-    plan.filter(p=>p.on).map(p=>p.steps.map(s=>{ const n=[]; if(s.pd) n.push(`use ${fmtUL(s.pd.v)} µL of 1:${s.pd.f}`); if(s.over) n.push('more than final volume');
-      return `<tr>${td(`<b style="color:${p.color}">${esc(p.code)}</b>`)}${td(fmtDose(s.dose))}${td(s.wells? rowSpan(s.wells) : '')}${tdn(fmtUL(s.v),'font-weight:700')}${fin!=null?tdn(fmtUL(s.med)):''}${tdn(fmtUL(s.v*mix))}${fin!=null?tdn(fmtUL(s.med*mix)):''}${td(esc(n.join('; ')),`color:${SC.bad}`)}</tr>`; }).join('')).join('')}</tbody></table>`;
+    plan.filter(p=>p.on).map(p=>`<tr>${td(`<b style="color:${p.color}">${esc(p.code)}</b>`)}${td(esc(p.name),'font-weight:600')}${td(esc(p.c.sample||'–')+` <span style="color:${p.st.bad?SC.bad:SC.muted}">(${esc(p.st.txt)})</span>`)}${td(p.steps.map(s=>s.shared? '0 (ctrl)' : fmtDose(s.dose)).join(', '))}${td(condWellsText(p))}${tdn(`${fmtUL(p.need)} (${fmtUL(p.need*1.1)})`)}</tr>`).join('')}</tbody></table>`;
+  const pip=`<table style="border-collapse:collapse;width:100%;margin-top:10pt"><thead><tr><th ${th}>Short</th><th ${th}>Dose</th><th ${th}>Wells</th><th ${thn}>Sample / well (µL)</th>${fin!=null?`<th ${thn}>Medium / well (µL)</th>`:''}<th ${thn}>Mix (wells + 1): sample</th>${fin!=null?`<th ${thn}>medium</th>`:''}<th ${th}>Note</th></tr></thead><tbody>${
+    plan.filter(p=>p.on).map(p=>p.steps.filter(s=>!s.shared).map(s=>{ const n=[], mix=mixOf(s); if(s.pd) n.push(`use ${fmtUL(s.pd.v)} µL of 1:${s.pd.f}`); if(s.over) n.push('more than final volume');
+      return `<tr>${td(`<b style="color:${p.color}">${esc(p.code)}</b>`)}${td(fmtDose(s.dose))}${td(s.wells? wellList(s.wells) : '')}${tdn(fmtUL(s.v),'font-weight:700')}${fin!=null?tdn(fmtUL(s.med)):''}${tdn(fmtUL(s.v*mix))}${fin!=null?tdn(fmtUL(s.med*mix)):''}${td(esc(n.join('; ')),`color:${SC.bad}`)}</tr>`; }).join('')).join('')}</tbody></table>`;
   return `<div style="${FONT}color:${SC.ink}">
     <div style="border-bottom:2pt solid ${SC.accent};padding-bottom:4pt;margin-bottom:8pt"><h1 style="${FONT}font-size:15pt;font-weight:600;margin:0">${esc((T.title||'').trim()||'96-well titration')}</h1>
     <p style="${FONT}font-size:8.5pt;color:${SC.muted};margin:2pt 0 0">${today()} · ${esc(settingsTitr())}</p></div>
     ${map}${legend}<div style="break-before:page;page-break-before:always"></div>${pip}</div>`;
 }
 function titrText(){
-  const plan=titrPlan(), g=geom(), idx=wellIndex(plan), fin=finalVol(), mix=g.r+1;
+  const plan=titrPlan(), idx=wellIndex(plan), fin=finalVol();
   const out=[(T.title||'').trim()||'96-well titration', `${today()} · ${settingsTitr()}`, '', ['',...[...Array(12)].map((_,c)=>c+1)].join('\t')];
-  for(let r=0;r<8;r++){ const row=[ROWS[r]]; for(let c=0;c<12;c++){ const o=idx[wellName(r,c)]; row.push(o? `${o.p.code} ${fmtDose(o.p.steps[o.i].dose)} | ${fmtUL(o.p.steps[o.i].v)} µL` : ''); } out.push(row.join('\t')); }
-  out.push('', ['Short','Condition','Sample','Dose ('+doseUnit()+')','Wells','Sample / well (µL)',...(fin!=null?['Medium / well (µL)']:[]),`Mix ${mix} wells: sample (µL)`,...(fin!=null?['Mix: medium (µL)']:[]),'Note'].join('\t'));
-  plan.filter(p=>p.on).forEach(p=>p.steps.forEach(s=>out.push([p.code,p.name,p.c.sample||'',fmtDose(s.dose),s.wells?rowSpan(s.wells):'',fmtUL(s.v),...(fin!=null?[fmtUL(s.med)]:[]),fmtUL(s.v*mix),...(fin!=null?[fmtUL(s.med*mix)]:[]),
-    [s.pd?`use ${fmtUL(s.pd.v)} µL of 1:${s.pd.f}`:'', s.over?'more than final volume':''].filter(Boolean).join('; ')].join('\t'))));
+  for(let r=0;r<8;r++){ const row=[ROWS[r]]; for(let c=0;c<12;c++){ const w=wellName(r,c), o=idx[w], sh=sharedOf(plan,w); row.push(o? `${o.p.code} ${fmtDose(o.p.steps[o.i].dose)} | ${fmtUL(o.p.steps[o.i].v)} µL` : sh||''); } out.push(row.join('\t')); }
+  out.push('', ['Short','Condition','Sample','Dose ('+doseUnit()+')','Wells','Sample / well (µL)',...(fin!=null?['Medium / well (µL)']:[]),'Mix (wells + 1): sample (µL)',...(fin!=null?['Mix: medium (µL)']:[]),'Note'].join('\t'));
+  plan.filter(p=>p.on).forEach(p=>p.steps.filter(s=>!s.shared).forEach(s=>{ const mix=mixOf(s); out.push([p.code,p.name,p.c.sample||'',fmtDose(s.dose),s.wells?wellList(s.wells):'',fmtUL(s.v),...(fin!=null?[fmtUL(s.med)]:[]),fmtUL(s.v*mix),...(fin!=null?[fmtUL(s.med*mix)]:[]),
+    [s.pd?`use ${fmtUL(s.pd.v)} µL of 1:${s.pd.f}`:'', s.over?'more than final volume':''].filter(Boolean).join('; ')].join('\t')); }));
+  const sh=plan.shared; if(sh.ctrl.length) out.push(['ctrl','untreated control (all conditions)','','0',wellList(sh.ctrl),'0',...(fin!=null?[fmtUL(fin)]:[])].join('\t'));
+  if(sh.blank.length) out.push(['blank','medium without cells','','',wellList(sh.blank),'0',...(fin!=null?[fmtUL(fin)]:[])].join('\t'));
   return out.join('\n');
 }
 
@@ -1123,11 +1327,16 @@ function fitNotes(f){
 }
 const fmtS=v=>!isFinite(v)? '–' : (v!==0&&(Math.abs(v)>=1e4||Math.abs(v)<1e-3))? v.toExponential(2) : String(+v.toPrecision(4));
 
+const valAt=(R,w)=>R.M[ROWS.indexOf(w[0])][+w.slice(1)-1];
 function ic50Data(){
-  const R=parseReadout(T.raw), blank= T.blank!==''&&isFinite(+T.blank)? +T.blank : 0;
-  const conds=titrPlan().filter(p=>p.on).map(p=>{
+  const R=parseReadout(T.raw), plan=titrPlan();
+  let blank=0, blankFrom='';
+  if(T.blank!==''&&isFinite(+T.blank)){ blank=+T.blank; blankFrom='entered'; }
+  else { const bv=plan.shared.blank.filter(w=>!T.excl[w]).map(w=>valAt(R,w)).filter(isFinite);
+    if(bv.length){ blank=bv.reduce((a,b)=>a+b,0)/bv.length; blankFrom=`mean of ${bv.length} blank well${bv.length===1?'':'s'}`; } }
+  const conds=plan.filter(p=>p.on).map(p=>{
     const pts=[];
-    p.ws.forEach((row,i)=>row.forEach(w=>{ const y=R.M[ROWS.indexOf(w[0])][+w.slice(1)-1]; if(!isFinite(y)) return; pts.push({w, x:p.steps[i].dose, y:y-blank, ex:!!T.excl[w]}); }));
+    p.steps.forEach(s=>(s.wells||[]).forEach(w=>{ const y=valAt(R,w); if(!isFinite(y)) return; pts.push({w, x:s.dose, y:y-blank, ex:!!T.excl[w]}); }));
     let normFail=false;
     if(T.norm==='pct'){ const ctl=pts.filter(q=>q.x===0&&!q.ex); if(ctl.length){ const m=ctl.reduce((a,q)=>a+q.y,0)/ctl.length; pts.forEach(q=>q.y=q.y/m*100); } else normFail=true; }
     const use=pts.filter(q=>!q.ex&&isFinite(q.x));
@@ -1135,7 +1344,7 @@ function ic50Data(){
     const notes=fitNotes(fit); if(normFail) notes.unshift('no untreated control: shown as measured');
     return {...p, pts, fit, notes};
   });
-  return {R, conds};
+  return {R, conds, plan, blank, blankFrom};
 }
 const xLabel=()=> (T.xlab||'').trim() || (T.unit==='volume'? 'Sample volume (µL)' : 'Absolute amount (A·µL)');
 const yLabel=()=> (T.ylab||'').trim() || (T.norm==='pct'? 'Response (% of control)' : 'Absorbance (AU)');
@@ -1207,10 +1416,18 @@ let IC=null;
 function ic50Update(){
   if(!T) return;
   IC=ic50Data();
-  const idx={}; IC.conds.forEach(c=>c.ws.forEach((row,i)=>row.forEach(w=>idx[w]={c,i})));
+  const idx={}; IC.conds.forEach(c=>c.steps.forEach((s,i)=>{ if(!s.shared) (s.wells||[]).forEach(w=>idx[w]={c,i}); }));
+  const pl=IC.plan, src= T.layout==='mask'? 'imported plate mask' : 'blocks designed on the 96-well titration tab';
+  $('rLayoutInfo').innerHTML= `Layout: <b>${src}</b> · ${pl.length} condition${pl.length===1?'':'s'}`+
+    (pl.shared.ctrl.length? ` · untreated control ${wellList(pl.shared.ctrl)}` : '')+(pl.shared.blank.length? ` · blank ${wellList(pl.shared.blank)}` : '')+
+    (IC.blankFrom? ` · background ${+IC.blank.toPrecision(4)} subtracted (${IC.blankFrom})` : '')+
+    (T.layout==='mask'&&pl.mask.P.warn.length? `<ul>${pl.mask.P.warn.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>` : '');
+  $('rBlank').placeholder= pl.shared.blank.length? 'from the blank wells' : 'optional';
+  try{ $('rRestore').hidden=!localStorage.getItem(KEY+'.backup'); }catch(e){}
   if(!IC.R.rows){ $('rPlate').innerHTML='<p class="empty">Paste a plate readout to start.</p>'; }
-  else $('rPlate').innerHTML=plateGrid(w=>{ const v=IC.R.M[ROWS.indexOf(w[0])][+w.slice(1)-1], o=idx[w];
+  else $('rPlate').innerHTML=plateGrid(w=>{ const v=valAt(IC.R,w), o=idx[w], sh=sharedOf(pl,w);
     const val=isFinite(v)? +v.toPrecision(4) : '–';
+    if(sh){ const ex=!!T.excl[w]; return `<div class="pw sh rv click${ex?' ex':''}" data-ex="${w}" title="${w} · ${sh==='ctrl'? 'untreated control (dose 0) for all conditions' : 'blank: background'} · ${ex? 'left out – click to use' : 'click to leave out'}"><b>${sh}</b><span class="pv">${val}</span><span class="pd">${sh==='ctrl'? '0' : 'bg'}</span></div>`; }
     if(!o) return `<div class="pw empty rv" title="${w}: not in the layout">${isFinite(v)? `<span class="m">${val}</span>` : ''}</div>`;
     const ex=!!T.excl[w];
     return `<div class="pw rv click${ex?' ex':''}" data-ex="${w}" style="border-color:${o.c.color};background:${rgba(o.c.color,0.08)}" title="${esc(`${w} · ${o.c.name} · dose ${fmtDose(o.c.steps[o.i].dose)} · ${ex? 'left out – click to use' : 'click to leave out'}`)}">
@@ -1231,7 +1448,7 @@ function ic50Update(){
 }
 function ic50Text(){
   if(!IC) ic50Update(); const u=doseUnit();
-  const out=[(T.title||'').trim()||'IC50', `${today()} · 4-parameter log-logistic (drc LL.4) · response: ${yLabel()}${T.blank!==''?` · blank ${T.blank} subtracted`:''}`,
+  const out=[(T.title||'').trim()||'IC50', `${today()} · 4-parameter log-logistic (drc LL.4) · response: ${yLabel()}${IC.blankFrom?` · background ${+IC.blank.toPrecision(4)} subtracted (${IC.blankFrom})`:''}`,
     ['Short','Condition','Sample',`IC50 (${u})`,'CI 2.5 %','CI 97.5 %','Slope','Top','Bottom','R²','n','Note'].join('\t')];
   IC.conds.forEach(c=>{ const f=c.fit, ok=f&&f.ok; out.push([c.code,c.name,c.c.sample||'',ok?fmtS(f.e):'',ok&&f.df>0?fmtS(f.ci[0]):'',ok&&f.df>0?fmtS(f.ci[1]):'',ok?fmtS(f.b):'',ok?fmtS(f.d):'',ok?fmtS(f.c):'',ok?fmt(f.r2,3):'',ok?f.n:'',c.notes.join('; ')].join('\t')); });
   const ex=Object.keys(T.excl).filter(k=>T.excl[k]); if(ex.length) out.push('', 'Left out: '+ex.sort().join(', '));
@@ -1249,7 +1466,7 @@ function icSheetHtml(){
     : `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8pt;margin-top:10pt">${IC.conds.map(c=>`<div style="break-inside:avoid">${plotSvg([c],{w:380,h:280,theme:printTheme,title:`${c.code} · ${c.name}`,wrap:46,label:true,xlab:xLabel(),ylab:yLabel()})}</div>`).join('')}</div>`;
   return `<div style="${FONT}color:${SC.ink}">
     <div style="border-bottom:2pt solid ${SC.accent};padding-bottom:4pt;margin-bottom:8pt"><h1 style="${FONT}font-size:15pt;font-weight:600;margin:0">${esc((T.title||'').trim()||'IC50')}</h1>
-    <p style="${FONT}font-size:8.5pt;color:${SC.muted};margin:2pt 0 0">${today()} · 4-parameter log-logistic (as drc LL.4), fitted to every replicate well · ${esc(settingsTitr())}${T.blank!==''?` · blank ${esc(T.blank)} subtracted`:''} · response: ${esc(yLabel())}${ex.length?` · left out: ${ex.join(', ')}`:''}</p></div>
+    <p style="${FONT}font-size:8.5pt;color:${SC.muted};margin:2pt 0 0">${today()} · 4-parameter log-logistic (as drc LL.4), fitted to every replicate well · ${esc(settingsTitr())}${IC.blankFrom?` · background ${+IC.blank.toPrecision(4)} subtracted (${esc(IC.blankFrom)})`:''} · response: ${esc(yLabel())}${ex.length?` · left out: ${ex.join(', ')}`:''}</p></div>
     ${ic50TableHtml()}${plots}</div>`;
 }
 async function copyRich(html, text, btn){
@@ -1280,7 +1497,26 @@ function titrInit(){
   $('tFinal').addEventListener('input',e=>{ T.final=e.target.value; updateTitr(); });
   $('tMin').addEventListener('input',e=>{ T.minv=e.target.value; updateTitr(); });
   $('tTitle').addEventListener('input',e=>{ T.title=e.target.value; save(); });
-  $('tConds').addEventListener('input',e=>{ const el=e.target, k=+el.dataset.k, f=el.dataset.f; if(!T.conds[k]||!f) return; T.conds[k][f]=el.value; updateTitr(); });
+  $('tConds').addEventListener('input',e=>{ const el=e.target, f=el.dataset.f;
+    if(el.dataset.m!=null){ const m=T.maskMeta[el.dataset.m]=T.maskMeta[el.dataset.m]||{code:'', sample:''}; m[f]=el.value; updateTitr(); return; }
+    const k=+el.dataset.k; if(!T.conds[k]||!f) return; T.conds[k][f]=el.value; updateTitr(); });
+  document.querySelectorAll('input[name="tLayout"]').forEach(r=>r.addEventListener('change',e=>{ T.layout=e.target.value; T.excl={}; renderTitr(); if(T.layout==='mask'&&!T.mask) $('tMask').focus(); }));
+  let tm; $('tMask').addEventListener('input',()=>{ clearTimeout(tm); tm=setTimeout(()=>{ T.mask=$('tMask').value; updateTitr(); },250); });
+  $('tMaskFile').addEventListener('click',()=>$('tMaskIn').click());
+  $('tMaskIn').addEventListener('change',async e=>{ const f=e.target.files[0]; if(!f) return;
+    if(/\.xlsx?$/i.test(f.name)){ $('tMaskInfo').innerHTML='<ul><li>Excel files cannot be read here: select the 8 × 12 range in Excel, copy, and paste it into the box (or save as CSV).</li></ul>'; e.target.value=''; return; }
+    let txt=await f.text(); if(txt.includes('\uFFFD')){ const b=await f.arrayBuffer(); txt=new TextDecoder('windows-1252').decode(b); }
+    T.mask=txt; $('tMask').value=txt; e.target.value=''; updateTitr(); });
+  $('tMaskFromBlocks').addEventListener('click',()=>{ const was=T.layout; T.layout='blocks'; const txt=maskGridText(titrPlan());
+    T.conds.forEach(c=>{ const k=norm(c.name); if(c.sample||c.code) T.maskMeta[k]={code:c.code||'', sample:c.sample||''}; });
+    T.layout='mask'; T.mask=txt; $('tMask').value=txt; renderTitr(); if(was!=='mask') T.excl={}; });
+  $('tMaskDl').addEventListener('click',()=>{ const b=new Blob(['\uFEFF'+maskCsv()],{type:'text/csv;charset=utf-8'}), a=document.createElement('a');
+    a.href=URL.createObjectURL(b); a.download=((T.title||'').trim()||'plate layout').replace(/[\\/:*?"<>|]+/g,'-')+'.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); });
+  $('rMask').addEventListener('click',()=>{ T.layout='mask'; showTab('titr'); renderTitr(); $('tMask').focus(); });
+  $('rExample').addEventListener('click',loadExample);
+  $('rRestore').addEventListener('click',()=>{ try{ const b=JSON.parse(localStorage.getItem(KEY+'.backup')||'null'); if(!b) return;
+      state.plate=Object.assign(defaultPlate(), b); T=state.plate; localStorage.removeItem(KEY+'.backup'); }catch(e){ return; }
+    syncIc50Inputs(); save(); renderTitr(); ic50Update(); });
   $('tConds').addEventListener('click',e=>{ const b=e.target.closest('[data-cdel]'); if(!b) return; T.conds.splice(+b.dataset.cdel,1); renderTitr(); });
   $('tAdd').addEventListener('click',()=>{ const k=T.conds.length, prev=T.conds[k-1]||{}; T.conds.push({name:`Condition ${k+1}`, code:`C${k+1}`, sample:'', lo:prev.lo??1, hi:prev.hi??14, doses:''}); renderTitr();
     const i=document.querySelector(`#tConds .cname[data-k="${k}"]`); if(i){ i.focus(); i.select(); } });
@@ -1295,7 +1531,32 @@ function titrInit(){
   $('rCopy').addEventListener('click',e=>{ ic50Update(); copyRich(`<div style="${FONT}">${ic50TableHtml()}</div>`, ic50Text(), e.currentTarget); });
   if(isLocal){ $('tPrint').hidden=false; $('rPrint').hidden=false;
     $('tPrint').addEventListener('click',()=>{ buildSheet(); window.print(); }); $('rPrint').addEventListener('click',()=>{ buildSheet(); window.print(); }); }
-  $('rRaw').value=T.raw||''; $('rBlank').value=T.blank; $('rNorm').value=T.norm; $('rX').value=T.xlab||''; $('rY').value=T.ylab||'';
+  syncIc50Inputs();
+}
+function syncIc50Inputs(){ $('rRaw').value=T.raw||''; $('rBlank').value=T.blank; $('rNorm').value=T.norm; $('rX').value=T.xlab||''; $('rY').value=T.ylab||''; $('tMask').value=T.mask||''; }
+
+/* ---- example: imported mask + simulated MTT readout --------------------- */
+function exampleData(){
+  const doses=[0.5,1,2,4,8,16,32,64];
+  const groups=[{name:'DOPC', rows:'ABC', e:9, b:1.4}, {name:'DOPC/DOTAP 1:1', rows:'DEF', e:2.8, b:1.8}, {name:'vac lipid', rows:'GH', e:21, b:1.2}];
+  let seed=7; const rnd=()=>{ seed=(seed*16807)%2147483647; return seed/2147483647; };
+  const noise=()=>(rnd()+rnd()+rnd()-1.5)*0.05;
+  const top=1.12, bot=0.14, bl=0.048, mask=[], read=[];
+  mask.push('\t'+[...Array(12)].map((_,c)=>c+1).join('\t')); read.push('\t'+[...Array(12)].map((_,c)=>c+1).join('\t'));
+  for(const r of ROWS){ const g=groups.find(x=>x.rows.includes(r)), mrow=[r], vrow=[r];
+    for(let c=1;c<=12;c++){
+      if(c===1){ mrow.push('ctrl'); vrow.push((bl+top*(1+noise())).toFixed(3)); }
+      else if(c<=9){ const d=doses[c-2]; mrow.push(`${g.name} ${d}`); vrow.push((bl+(bot+(top-bot)/(1+Math.exp(g.b*(Math.log(d)-Math.log(g.e)))))*(1+noise())).toFixed(3)); }
+      else if(c===12&&'ABCD'.includes(r)){ mrow.push('blank'); vrow.push((bl*(1+noise())).toFixed(3)); }
+      else { mrow.push(''); vrow.push((bl*(1+noise()*0.5)).toFixed(3)); } }
+    mask.push(mrow.join('\t')); read.push(vrow.join('\t')); }
+  return {mask:mask.join('\n'), raw:read.join('\n')};
+}
+function loadExample(){
+  try{ if(!localStorage.getItem(KEY+'.backup')) localStorage.setItem(KEY+'.backup', JSON.stringify(T)); }catch(e){}
+  const ex=exampleData();
+  Object.assign(T,{layout:'mask', mask:ex.mask, raw:ex.raw, blank:'', norm:'pct', excl:{}, unit:'amount', final:'100', overlay:false, xlab:'', ylab:'', title:'Example – MTT HeLa 24 h, lipid-coated MOF'});
+  syncIc50Inputs(); save(); renderTitr(); ic50Update();
 }
 
 init();
